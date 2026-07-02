@@ -1,1568 +1,2085 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Goa Bus Timing System – Real-Time Tracker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMSR Bus — Goa Bus Reminder & Tracker</title>
+  <meta name="description" content="Real-time bus schedule tracker and reminder system for ACMSR College routes in Goa. Never miss your bus again." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-    <!-- Firebase SDKs (CDN) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js">
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js">
-    </script>
+  <!-- Firebase SDKs (compat v10) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-    <style>
-        :root {
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --surface2: #273548;
-            --border: #334155;
-            --text: #e2e8f0;
-            --text2: #94a3b8;
-            --accent: #3b82f6;
-            --accent2: #2563eb;
-            --green: #22c55e;
-            --red: #ef4444;
-            --yellow: #eab308;
-            --orange: #f97316;
-            --purple: #a855f7;
-            --radius: 10px;
-            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-            --transition: 0.2s ease;
-        }
+  <style>
+    /* ══════════════════════════════════════
+       DESIGN TOKENS
+    ══════════════════════════════════════ */
+    :root {
+      --bg:         #080d1a;
+      --bg2:        #0d1525;
+      --surface:    rgba(255,255,255,0.05);
+      --surface2:   rgba(255,255,255,0.08);
+      --surfaceS:   rgba(255,255,255,0.03);
+      --border:     rgba(255,255,255,0.10);
+      --border2:    rgba(255,255,255,0.15);
+      --text:       #e8edf5;
+      --text2:      #8892a4;
+      --text3:      #5a6478;
+      --accent:     #3d8ef8;
+      --accent2:    #1a6ef0;
+      --accentGlow: rgba(61,142,248,0.25);
+      --green:      #22d47e;
+      --greenDim:   rgba(34,212,126,0.15);
+      --red:        #f2545b;
+      --redDim:     rgba(242,84,91,0.15);
+      --yellow:     #f5c542;
+      --yellowDim:  rgba(245,197,66,0.15);
+      --orange:     #f97316;
+      --purple:     #a855f7;
+      --purpleDim:  rgba(168,85,247,0.15);
+      --radius:     14px;
+      --radiusSm:   8px;
+      --shadow:     0 8px 32px rgba(0,0,0,0.5);
+      --shadowSm:   0 2px 12px rgba(0,0,0,0.3);
+    }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            min-height: 100vh;
-            line-height: 1.5;
-            padding-bottom: 60px;
-        }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
 
-        /* ── HEADER ──────────────────────────── */
-        .header {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 14px 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            box-shadow: var(--shadow);
-        }
-        .header .logo {
-            font-size: 1.3rem;
-            font-weight: 700;
-            letter-spacing: -0.3px;
-            color: #fff;
-        }
-        .header .logo span {
-            color: var(--accent);
-        }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
+    /* Background grid pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(61,142,248,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(61,142,248,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
 
-        /* ── BUTTONS ─────────────────────────── */
-        .btn {
-            padding: 9px 16px;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: var(--transition);
-            background: var(--surface2);
-            color: var(--text);
-            white-space: nowrap;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn:hover {
-            background: #334155;
-            border-color: #64748b;
-        }
-        .btn-accent {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #fff;
-            font-weight: 600;
-        }
-        .btn-accent:hover {
-            background: var(--accent2);
-            border-color: var(--accent2);
-        }
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--accent);
-            color: var(--accent);
-            font-weight: 600;
-        }
-        .btn-outline:hover {
-            background: var(--accent);
-            color: #fff;
-        }
-        .btn-sm {
-            padding: 5px 10px;
-            font-size: 0.75rem;
-            border-radius: 6px;
-        }
-        .btn-xs {
-            padding: 3px 8px;
-            font-size: 0.7rem;
-            border-radius: 4px;
-        }
-        .btn-danger {
-            background: var(--red);
-            border-color: var(--red);
-            color: #fff;
-        }
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-        .btn-green {
-            background: var(--green);
-            border-color: var(--green);
-            color: #000;
-            font-weight: 600;
-        }
-        .btn-green:hover {
-            background: #16a34a;
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+    /* ── HEADER ────────────────────────── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8,13,26,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
 
-        /* ── ALERT BANNER ────────────────────── */
-        .alert-banner {
-            background: var(--orange);
-            color: #000;
-            padding: 10px 20px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            text-align: center;
-            display: none;
-            animation: slideDown 0.3s ease;
-        }
-        .alert-banner.show {
-            display: block;
-        }
-        @keyframes slideDown {
-            from {
-                max-height: 0;
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                max-height: 60px;
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .alert-banner .close-alert {
-            float: right;
-            cursor: pointer;
-            font-weight: 700;
-            background: none;
-            border: none;
-            font-size: 1.1rem;
-            color: #000;
-            margin-left: 12px;
-        }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -0.5px;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .logo span { color: var(--accent); }
 
-        /* ── CONTAINER ───────────────────────── */
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 20px 16px;
-        }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
-        /* ── FILTER BAR ──────────────────────── */
-        .filter-bar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
-            align-items: center;
-        }
-        .filter-bar input,
-        .filter-bar select {
-            padding: 10px 14px;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            background: var(--surface);
-            color: var(--text);
-            font-size: 0.875rem;
-            min-width: 140px;
-            transition: var(--transition);
-        }
-        .filter-bar input:focus,
-        .filter-bar select:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-        .filter-bar input {
-            flex: 1;
-            min-width: 200px;
-        }
+    /* ── NEXT BUS HERO BANNER ─────────── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      margin: 20px 20px 0;
+      background: linear-gradient(135deg, rgba(61,142,248,0.15) 0%, rgba(124,58,237,0.15) 100%);
+      border: 1px solid rgba(61,142,248,0.3);
+      border-radius: 20px;
+      padding: 24px;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(61,142,248,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-inner {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .hero-bus-icon {
+      font-size: 3rem;
+      line-height: 1;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    .hero-text h2 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .hero-text .next-bus-info {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .hero-text .next-bus-route {
+      font-size: 0.85rem;
+      color: var(--text2);
+      margin-top: 2px;
+    }
+    .hero-countdown {
+      margin-left: auto;
+      text-align: right;
+    }
+    .countdown-ring-wrap {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      margin: 0 auto 4px;
+    }
+    .countdown-ring-wrap svg {
+      transform: rotate(-90deg);
+    }
+    .countdown-ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 6; }
+    .countdown-ring-fg {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 226;
+      stroke-dashoffset: 226;
+      transition: stroke-dashoffset 1s linear;
+    }
+    .countdown-ring-fg.urgent { stroke: var(--red); }
+    .countdown-ring-fg.soon   { stroke: var(--yellow); }
+    .countdown-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .countdown-mins {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+    .countdown-label {
+      font-size: 0.55rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text2);
+    }
+    .hero-no-bus {
+      font-size: 1rem;
+      color: var(--text2);
+      text-align: center;
+      padding: 10px 0;
+    }
 
-        /* ── BUS CARD ────────────────────────── */
-        .bus-list {
-            display: grid;
-            gap: 12px;
-        }
-        .bus-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 16px 18px;
-            transition: var(--transition);
-            position: relative;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-        .bus-card:hover {
-            border-color: #64748b;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-        }
-        .bus-card .top-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .bus-card .bus-no {
-            font-weight: 700;
-            font-size: 1.15rem;
-            color: #fff;
-            letter-spacing: -0.2px;
-        }
-        .bus-card .bus-no .badge-type {
-            font-size: 0.65rem;
-            padding: 2px 7px;
-            border-radius: 20px;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-left: 6px;
-            vertical-align: middle;
-        }
-        .badge-ktc {
-            background: #f59e0b;
-            color: #000;
-        }
-        .badge-private {
-            background: #8b5cf6;
-            color: #fff;
-        }
-        .badge-general {
-            background: #3b82f6;
-            color: #fff;
-        }
-        .bus-card .route {
-            color: var(--text2);
-            font-size: 0.85rem;
-            margin-top: 2px;
-        }
-        .bus-card .route strong {
-            color: var(--text);
-        }
-        .bus-card .time {
-            font-weight: 700;
-            font-size: 1.3rem;
-            color: var(--accent);
-            letter-spacing: -0.5px;
-        }
-        .bus-card .notes {
-            font-size: 0.8rem;
-            color: var(--text2);
-            margin-top: 4px;
-            font-style: italic;
-        }
-        .bus-card .meta-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            margin-top: 10px;
-            font-size: 0.78rem;
-            color: var(--text2);
-        }
-        /* Live status indicators */
-        .live-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 4px;
-            animation: pulse 1.5s infinite;
-        }
-        .live-dot.on-time {
-            background: var(--green);
-        }
-        .live-dot.delayed {
-            background: var(--red);
-        }
-        .live-dot.early {
-            background: var(--yellow);
-        }
-        @keyframes pulse {
-            0%,
-            100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.4;
-            }
-        }
-        .crowd-badge {
-            font-size: 0.7rem;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-weight: 600;
-        }
-        .crowd-low {
-            background: #166534;
-            color: #4ade80;
-        }
-        .crowd-medium {
-            background: #713f12;
-            color: #facc15;
-        }
-        .crowd-high {
-            background: #7f1d1d;
-            color: #f87171;
-        }
-        .verify-count {
-            font-size: 0.7rem;
-            color: var(--green);
-            font-weight: 600;
-        }
-        .card-actions {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            margin-top: 8px;
-        }
+    /* ── ALERT BANNER ─────────────────── */
+    .alert-bar {
+      position: relative;
+      z-index: 1;
+      margin: 12px 20px 0;
+      background: linear-gradient(135deg, rgba(245,197,66,0.12), rgba(249,115,22,0.12));
+      border: 1px solid rgba(245,197,66,0.3);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--yellow);
+      animation: slideIn 0.3s ease;
+    }
+    .alert-bar.show { display: flex; }
+    .alert-bar .alert-msg { flex: 1; }
+    .alert-bar .close-alert {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text2);
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 2px;
+      transition: color 0.2s;
+    }
+    .alert-bar .close-alert:hover { color: #fff; }
 
-        /* ── FAV BTN ─────────────────────────── */
-        .fav-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: var(--transition);
-            padding: 4px 6px;
-            border-radius: 50%;
-            line-height: 1;
-        }
-        .fav-btn:hover {
-            transform: scale(1.2);
-        }
-        .fav-btn.faved {
-            color: #f59e0b;
-        }
-        .fav-btn.not-faved {
-            color: #64748b;
-        }
+    @keyframes slideIn {
+      from { opacity:0; transform: translateY(-8px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
 
-        /* ── MODAL ───────────────────────────── */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 200;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .modal {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 24px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: var(--shadow);
-        }
-        .modal h3 {
-            margin-bottom: 16px;
-            font-size: 1.2rem;
-            color: #fff;
-        }
-        .modal label {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text2);
-            margin-bottom: 4px;
-            margin-top: 10px;
-        }
-        .modal input,
-        .modal textarea,
-        .modal select {
-            width: 100%;
-            padding: 9px 12px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            background: var(--bg);
-            color: var(--text);
-            font-size: 0.85rem;
-            font-family: inherit;
-        }
-        .modal textarea {
-            resize: vertical;
-            min-height: 60px;
-        }
-        .modal .btn-row {
-            display: flex;
-            gap: 8px;
-            margin-top: 16px;
-            justify-content: flex-end;
-        }
+    /* ── TABS NAV ─────────────────────── */
+    .tabs-nav {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 4px;
+      padding: 16px 20px 0;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 10px 10px 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      background: none;
+      color: var(--text2);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--surface); }
+    .tab-btn.active {
+      color: #fff;
+      background: rgba(61,142,248,0.12);
+      border-color: rgba(61,142,248,0.3);
+    }
 
-        /* ── COMMENT SECTION ─────────────────── */
-        .comment-section {
-            margin-top: 10px;
-            border-top: 1px solid var(--border);
-            padding-top: 10px;
-        }
-        .comment-section .comment {
-            font-size: 0.78rem;
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: var(--text2);
-        }
-        .comment-section .comment strong {
-            color: var(--text);
-        }
-        .comment-input-row {
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
-        }
-        .comment-input-row input {
-            flex: 1;
-            padding: 7px 10px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            background: var(--bg);
-            color: var(--text);
-            font-size: 0.8rem;
-        }
+    /* ── MAIN CONTENT ─────────────────── */
+    .main {
+      position: relative;
+      z-index: 1;
+      padding: 0 20px 80px;
+    }
 
-        /* ── USER INFO ───────────────────────── */
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.8rem;
-            color: var(--text2);
-        }
-        .user-info img {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 2px solid var(--accent);
-        }
-        .user-info .user-name {
-            font-weight: 600;
-            color: #fff;
-        }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
 
-        /* ── RESPONSIVE ──────────────────────── */
-        @media (max-width: 600px) {
-            .header {
-                padding: 10px 14px;
-            }
-            .header .logo {
-                font-size: 1rem;
-            }
-            .bus-card .top-row {
-                flex-direction: column;
-            }
-            .filter-bar {
-                flex-direction: column;
-            }
-            .filter-bar input,
-            .filter-bar select {
-                width: 100%;
-                min-width: unset;
-            }
-            .btn {
-                font-size: 0.78rem;
-                padding: 7px 12px;
-            }
-        }
+    /* ── FILTER / SEARCH BAR ─────────── */
+    .filter-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 16px 0 14px;
+      align-items: center;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+    }
+    .search-wrap .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 10px 12px 10px 36px;
+    }
+    .filter-strip input,
+    .filter-strip select {
+      padding: 10px 12px;
+      border-radius: var(--radiusSm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.825rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .filter-strip input:focus,
+    .filter-strip select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accentGlow);
+    }
+    .filter-strip select option { background: #1e293b; }
+    .result-count {
+      font-size: 0.78rem;
+      color: var(--text3);
+      white-space: nowrap;
+    }
 
-        /* ── HIDDEN ──────────────────────────── */
-        .hidden {
-            display: none !important;
-        }
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            border: 0;
-        }
-    </style>
+    /* ── BUS CARDS ────────────────────── */
+    .bus-grid { display: grid; gap: 10px; }
+
+    .bus-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .bus-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-radius: 3px 0 0 3px;
+    }
+    .bus-card.type-general::before { background: var(--accent); }
+    .bus-card.type-ktc::before    { background: var(--yellow); }
+    .bus-card.type-private::before { background: var(--purple); }
+    .bus-card:hover {
+      border-color: var(--border2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      transform: translateY(-1px);
+    }
+    .bus-card.next-up {
+      border-color: rgba(61,142,248,0.5);
+      background: rgba(61,142,248,0.06);
+      box-shadow: 0 0 0 1px rgba(61,142,248,0.2), 0 4px 20px rgba(61,142,248,0.1);
+    }
+    .bus-card.departing-soon {
+      border-color: rgba(245,197,66,0.4);
+      background: rgba(245,197,66,0.05);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .card-left { flex: 1; min-width: 0; }
+    .card-bus-no {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .type-badge {
+      font-size: 0.6rem;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .type-badge.general { background: rgba(61,142,248,0.2); color: var(--accent); }
+    .type-badge.ktc     { background: rgba(245,197,66,0.2); color: var(--yellow); }
+    .type-badge.private { background: rgba(168,85,247,0.2); color: var(--purple); }
+
+    .card-route {
+      font-size: 0.82rem;
+      color: var(--text2);
+      margin-top: 3px;
+    }
+    .card-route strong { color: var(--text); }
+
+    .card-right { text-align: right; flex-shrink: 0; }
+    .card-time {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .time-remaining {
+      font-size: 0.7rem;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+    .time-remaining.soon   { color: var(--yellow); font-weight: 600; }
+    .time-remaining.urgent { color: var(--red); font-weight: 700; }
+    .time-remaining.gone   { color: var(--text3); }
+
+    .card-notes {
+      font-size: 0.78rem;
+      color: var(--text2);
+      margin-top: 8px;
+      padding: 6px 10px;
+      background: var(--surfaceS);
+      border-radius: 6px;
+      border-left: 2px solid var(--border);
+    }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .live-pill.on-time { background: var(--greenDim); color: var(--green); }
+    .live-pill.delayed { background: var(--redDim);   color: var(--red); }
+    .live-pill.early   { background: var(--yellowDim); color: var(--yellow); }
+    .live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: blink 1.4s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+    .crowd-pill {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .crowd-pill.low    { background: var(--greenDim);  color: var(--green); }
+    .crowd-pill.medium { background: var(--yellowDim); color: var(--yellow); }
+    .crowd-pill.high   { background: var(--redDim);    color: var(--red); }
+
+    .verified-pill {
+      font-size: 0.7rem;
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .status-badge {
+      font-size: 0.65rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: auto;
+    }
+    .status-badge.next   { background: rgba(61,142,248,0.2); color: var(--accent); }
+    .status-badge.soon   { background: var(--yellowDim);     color: var(--yellow); }
+    .status-badge.passed { background: var(--surfaceS);       color: var(--text3); }
+
+    .card-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* ── REMINDER BTN ────────────────── */
+    .remind-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .remind-btn.set {
+      background: var(--accentGlow);
+      border-color: rgba(61,142,248,0.4);
+      color: var(--accent);
+    }
+    .remind-btn.set:hover {
+      background: rgba(61,142,248,0.25);
+    }
+    .remind-btn.active-reminder {
+      background: rgba(34,212,126,0.12);
+      border-color: rgba(34,212,126,0.4);
+      color: var(--green);
+      animation: pulse-border 2s infinite;
+    }
+    @keyframes pulse-border {
+      0%,100% { box-shadow: 0 0 0 0 rgba(34,212,126,0.3); }
+      50%      { box-shadow: 0 0 0 4px rgba(34,212,126,0); }
+    }
+
+    /* ── FAV BTN ─────────────────────── */
+    .fav-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: transform 0.2s;
+      line-height: 1;
+    }
+    .fav-btn:hover { transform: scale(1.2); }
+
+    /* ── SMALL BTNS ──────────────────── */
+    .btn-xs {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text2);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-xs:hover { border-color: var(--border2); color: var(--text); }
+    .btn-xs.green { background: var(--greenDim); border-color: rgba(34,212,126,0.4); color: var(--green); }
+    .btn-xs.green:hover { background: rgba(34,212,126,0.25); }
+
+    /* ── COMMENT SECTION ─────────────── */
+    .comment-section {
+      margin-top: 10px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      display: none;
+    }
+    .comment-section.open { display: block; }
+    .comment-item {
+      font-size: 0.77rem;
+      color: var(--text2);
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .comment-item strong { color: var(--text); }
+    .comment-item .comment-time { font-size: 0.65rem; color: var(--text3); margin-left: 6px; }
+    .comment-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .comment-row input {
+      flex: 1;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      color: var(--text);
+      font-size: 0.8rem;
+      font-family: inherit;
+      outline: none;
+    }
+    .comment-row input:focus { border-color: var(--accent); }
+    .comment-row button {
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* ── BUTTONS ─────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: var(--radiusSm);
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn:hover { border-color: var(--border2); background: rgba(255,255,255,0.1); }
+    .btn.accent {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn.accent:hover { background: var(--accent2); border-color: var(--accent2); }
+    .btn.outline {
+      background: transparent;
+      border: 2px solid var(--accent);
+      color: var(--accent);
+    }
+    .btn.outline:hover { background: var(--accent); color: #fff; }
+    .btn.danger { background: var(--redDim); border-color: rgba(242,84,91,0.4); color: var(--red); }
+    .btn.danger:hover { background: rgba(242,84,91,0.25); }
+    .btn.green-btn { background: var(--greenDim); border-color: rgba(34,212,126,0.4); color: var(--green); }
+    .btn.green-btn:hover { background: rgba(34,212,126,0.25); }
+    .btn.sm { padding: 6px 12px; font-size: 0.78rem; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── USER / AUTH ─────────────────── */
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.8rem;
+      color: var(--text2);
+    }
+    .user-chip img {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      object-fit: cover;
+    }
+    .user-chip .uname { font-weight: 600; color: var(--text); }
+
+    /* ── REMINDERS TAB ───────────────── */
+    .reminders-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text3);
+    }
+    .reminders-empty .big-icon { font-size: 3rem; margin-bottom: 12px; }
+    .reminders-empty p { font-size: 0.9rem; }
+
+    .reminder-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .reminder-card .r-icon {
+      font-size: 1.5rem;
+      width: 44px;
+      height: 44px;
+      background: rgba(61,142,248,0.12);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .reminder-card .r-info { flex: 1; min-width: 0; }
+    .reminder-card .r-bus { font-weight: 700; color: #fff; font-size: 0.95rem; }
+    .reminder-card .r-route { font-size: 0.8rem; color: var(--text2); }
+    .reminder-card .r-time { font-size: 0.78rem; color: var(--accent); font-weight: 600; margin-top: 2px; }
+    .reminder-card .r-actions { display: flex; gap: 6px; }
+
+    /* ── NOTIFICATION TOAST ──────────── */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 340px;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      animation: toastIn 0.3s ease;
+      pointer-events: all;
+    }
+    .toast.reminder-toast { border-color: rgba(61,142,248,0.4); }
+    .toast .t-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .toast .t-content .t-title { font-weight: 700; font-size: 0.9rem; color: #fff; }
+    .toast .t-content .t-body { font-size: 0.8rem; color: var(--text2); margin-top: 2px; }
+    .toast .t-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text3);
+      font-size: 1rem;
+      line-height: 1;
+      padding: 2px;
+      flex-shrink: 0;
+    }
+    @keyframes toastIn {
+      from { opacity:0; transform: translateX(20px); }
+      to   { opacity:1; transform: translateX(0); }
+    }
+
+    /* ── REMINDER MODAL ──────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 28px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: var(--shadow);
+      animation: modalIn 0.25s ease;
+    }
+    @keyframes modalIn {
+      from { opacity:0; transform: scale(0.95) translateY(10px); }
+      to   { opacity:1; transform: scale(1) translateY(0); }
+    }
+    .modal h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .modal .modal-sub { font-size: 0.83rem; color: var(--text2); margin-bottom: 20px; }
+    .modal label { display: block; font-size: 0.78rem; color: var(--text2); margin-bottom: 5px; margin-top: 14px; }
+    .modal input, .modal select, .modal textarea {
+      width: 100%;
+      padding: 10px 13px;
+      border-radius: var(--radiusSm);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .modal input:focus, .modal select:focus { border-color: var(--accent); }
+    .modal select option { background: #1e293b; }
+    .modal textarea { resize: vertical; min-height: 70px; }
+    .modal .btn-row { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+
+    /* Remind lead-time chips */
+    .lead-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .lead-chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text2);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .lead-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .lead-chip.selected { background: var(--accentGlow); border-color: var(--accent); color: var(--accent); }
+
+    /* ── ADMIN PANEL ─────────────────── */
+    .admin-tabs {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .admin-tab-btn {
+      padding: 7px 14px;
+      border-radius: var(--radiusSm);
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--text2);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .admin-tab-btn:hover { border-color: var(--border2); color: var(--text); }
+    .admin-tab-btn.active { background: var(--accentGlow); border-color: rgba(61,142,248,0.4); color: var(--accent); }
+    .admin-section { display: none; }
+    .admin-section.active { display: block; }
+
+    /* ── SECTION HEADERS ─────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 0 10px;
+    }
+    .section-header h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .section-header .count {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: var(--surface2);
+      color: var(--text2);
+    }
+
+    /* ── UTIL ────────────────────────── */
+    .hidden { display: none !important; }
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text3);
+      font-size: 0.9rem;
+    }
+
+    /* ── RESPONSIVE ──────────────────── */
+    @media (max-width: 600px) {
+      .header { padding: 0 14px; }
+      .hero { margin: 12px 14px 0; padding: 18px 16px; }
+      .tabs-nav { padding: 12px 14px 0; }
+      .main { padding: 0 14px 80px; }
+      .alert-bar { margin: 10px 14px 0; }
+      .hero-countdown { margin-left: 0; width: 100%; display: flex; align-items: center; gap: 12px; }
+      .countdown-ring-wrap { width: 70px; height: 70px; margin: 0; }
+      .countdown-mins { font-size: 1.1rem; }
+      .logo { font-size: 1rem; }
+    }
+
+    /* ── SCROLLBAR ───────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+  </style>
 </head>
 <body>
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- ── ALERT BANNER (Firebase‑synced) ───────── -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div id="alertBanner" class="alert-banner">
-        <span id="alertText"></span>
-        <button class="close-alert" id="closeAlertBtn" title="Dismiss">×</button>
+<!-- ══════════════════════════════════════
+     HEADER
+══════════════════════════════════════ -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🚌</div>
+    CMSR<span>Bus</span>
+  </div>
+  <div class="header-right">
+    <div id="userChip" class="user-chip hidden"></div>
+    <button id="loginBtn" class="btn outline sm">🔐 Sign in</button>
+    <button id="logoutBtn" class="btn sm hidden">Sign Out</button>
+    <button id="adminBtn" class="btn sm hidden" style="background:var(--purpleDim);border-color:rgba(168,85,247,0.4);color:var(--purple);">⚙️ Admin</button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     ALERT BANNER
+══════════════════════════════════════ -->
+<div id="alertBar" class="alert-bar">
+  <span>🚨</span>
+  <span id="alertMsg" class="alert-msg"></span>
+  <button class="close-alert" id="closeAlertBtn">×</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     NEXT BUS HERO
+══════════════════════════════════════ -->
+<div class="hero" id="hero">
+  <div class="hero-inner">
+    <div class="hero-bus-icon">🚌</div>
+    <div class="hero-text">
+      <h2>Next Upcoming Bus</h2>
+      <div class="next-bus-info" id="heroBusInfo">Loading...</div>
+      <div class="next-bus-route" id="heroBusRoute"></div>
+    </div>
+    <div class="hero-countdown" id="heroCountdown">
+      <div class="countdown-ring-wrap">
+        <svg width="90" height="90" viewBox="0 0 90 90">
+          <circle class="countdown-ring-bg" cx="45" cy="45" r="36"/>
+          <circle class="countdown-ring-fg" id="countdownRing" cx="45" cy="45" r="36"/>
+        </svg>
+        <div class="countdown-center">
+          <div class="countdown-mins" id="countdownMins">--</div>
+          <div class="countdown-label">min left</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TABS
+══════════════════════════════════════ -->
+<nav class="tabs-nav">
+  <button class="tab-btn active" data-tab="schedule" id="scheduleTab">📅 Schedule</button>
+  <button class="tab-btn" data-tab="reminders" id="remindersTab">🔔 Reminders <span id="reminderBadge" class="hidden" style="background:var(--red);color:#fff;font-size:0.6rem;padding:1px 5px;border-radius:10px;"></span></button>
+  <button class="tab-btn" data-tab="favorites" id="favoritesTab">⭐ Favorites</button>
+</nav>
+
+<!-- ══════════════════════════════════════
+     MAIN
+══════════════════════════════════════ -->
+<div class="main">
+
+  <!-- ── SCHEDULE TAB ─────────────────── -->
+  <div class="tab-panel active" id="panel-schedule">
+    <div class="filter-strip">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search bus no., route, notes..." autocomplete="off" />
+      </div>
+      <select id="filterFrom">
+        <option value="all">All Origins</option>
+      </select>
+      <select id="filterTo">
+        <option value="all">All Destinations</option>
+      </select>
+      <select id="filterType">
+        <option value="all">All Types</option>
+        <option value="general">General</option>
+        <option value="ktc">KTC</option>
+        <option value="private">Private</option>
+      </select>
+      <button class="btn sm" id="clearFiltersBtn">Clear</button>
+      <span class="result-count" id="resultCount"></span>
     </div>
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- ── HEADER ──────────────────────────────── -->
-    <!-- ═══════════════════════════════════════════ -->
-    <header class="header">
-        <div class="logo">🚌 Goa<span>Bus</span> Tracker</div>
-        <div class="header-actions">
-            <div id="userInfo" class="user-info hidden"></div>
-            <!-- 🔥 GOOGLE LOGIN BUTTON (Firebase Auth) -->
-            <button id="googleLoginBtn" class="btn btn-outline" title="Sign in with Google">
-                🔐 Sign in with Google
-            </button>
-            <button id="logoutBtn" class="btn btn-sm hidden" title="Sign out">Sign Out</button>
-            <!-- 🔥 ADMIN PANEL BUTTON (only visible to admin) -->
-            <button id="adminPanelBtn" class="btn btn-sm hidden" title="Admin Panel" style="background:#a855f7;border-color:#a855f7;color:#fff;">
-                ⚙️ Admin
-            </button>
-        </div>
-    </header>
+    <div class="bus-grid" id="busList"></div>
+    <div class="no-results hidden" id="noResults">No buses match your filters 🚏</div>
+  </div>
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- ── MAIN CONTAINER ──────────────────────── -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div class="container">
-        <!-- FILTER BAR (preserved original logic) -->
-        <div class="filter-bar">
-            <input type="text" id="searchInput" placeholder="🔍 Search by bus no., route, notes..." autocomplete="off">
-            <select id="filterType">
-                <option value="all">All Types</option>
-                <option value="general">General</option>
-                <option value="ktc">KTC</option>
-                <option value="private">Private</option>
-            </select>
-            <select id="filterFrom">
-                <option value="all">All Origins</option>
-            </select>
-            <select id="filterTo">
-                <option value="all">All Destinations</option>
-            </select>
-            <button id="showFavsBtn" class="btn btn-sm" title="Show favorites only">⭐ Favorites</button>
-            <button id="clearFiltersBtn" class="btn btn-sm">Clear</button>
-            <span id="resultCount" style="font-size:0.8rem;color:var(--text2);white-space:nowrap;"></span>
-        </div>
+  <!-- ── REMINDERS TAB ────────────────── -->
+  <div class="tab-panel" id="panel-reminders">
+    <div class="section-header">
+      <h2>🔔 My Reminders</h2>
+    </div>
+    <div id="remindersList"></div>
+    <div id="remindersEmpty" class="reminders-empty hidden">
+      <div class="big-icon">🔔</div>
+      <p>No reminders set yet.<br/>Click the <strong>🔔 Remind Me</strong> button on any bus card.</p>
+    </div>
+  </div>
 
-        <!-- BUS LIST -->
-        <div id="busList" class="bus-list">
-            <!-- Cards rendered dynamically -->
-        </div>
-        <div id="noResults" class="hidden" style="text-align:center;padding:40px;color:var(--text2);">
-            No buses match your filters. 🚏
-        </div>
+  <!-- ── FAVORITES TAB ────────────────── -->
+  <div class="tab-panel" id="panel-favorites">
+    <div class="section-header">
+      <h2>⭐ Favorite Buses</h2>
+    </div>
+    <div class="bus-grid" id="favList"></div>
+    <div id="favEmpty" class="no-results hidden">No favorites yet. Star a bus to save it here.</div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════
+     REMINDER MODAL
+══════════════════════════════════════ -->
+<div id="reminderModal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>🔔 Set a Reminder</h3>
+    <p class="modal-sub" id="reminderModalSub">Bus 9424 — Varca → ACMSR College at 07:00</p>
+    <label>Remind me how many minutes before?</label>
+    <div class="lead-chips">
+      <button class="lead-chip selected" data-mins="5">5 min</button>
+      <button class="lead-chip" data-mins="10">10 min</button>
+      <button class="lead-chip" data-mins="15">15 min</button>
+      <button class="lead-chip" data-mins="20">20 min</button>
+      <button class="lead-chip" data-mins="30">30 min</button>
+    </div>
+    <label>Repeat every day?</label>
+    <select id="reminderRepeat">
+      <option value="daily">Every day (Daily)</option>
+      <option value="once">One time only</option>
+    </select>
+    <div class="btn-row">
+      <button class="btn sm" id="reminderCancelBtn">Cancel</button>
+      <button class="btn sm accent" id="reminderSaveBtn">🔔 Set Reminder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ADMIN MODAL
+══════════════════════════════════════ -->
+<div id="adminModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:520px;">
+    <h3>⚙️ Admin Panel</h3>
+    <div class="admin-tabs" style="margin-top:14px;">
+      <button class="admin-tab-btn active" data-atab="add">➕ Add Bus</button>
+      <button class="admin-tab-btn" data-atab="edit">✏️ Edit Bus</button>
+      <button class="admin-tab-btn" data-atab="alerts">🚨 Alerts</button>
+      <button class="admin-tab-btn" data-atab="live">📍 Live Update</button>
     </div>
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- ── ADMIN MODAL ─────────────────────────── -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div id="adminModalOverlay" class="modal-overlay hidden">
-        <div class="modal" id="adminModal">
-            <h3>⚙️ Admin Panel</h3>
-            <div id="adminTabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-                <button class="btn btn-sm btn-accent admin-tab-btn" data-tab="add">➕ Add Bus</button>
-                <button class="btn btn-sm admin-tab-btn" data-tab="edit">✏️ Edit Bus</button>
-                <button class="btn btn-sm admin-tab-btn" data-tab="alerts">🚨 Alerts</button>
-                <button class="btn btn-sm admin-tab-btn" data-tab="live">📍 Live Update</button>
-            </div>
-            <!-- Tab: Add Bus -->
-            <div id="tab-add" class="admin-tab">
-                <label>Bus Number</label><input type="text" id="admAddBusNo" placeholder="e.g. 9424">
-                <label>Type</label><select id="admAddType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
-                <label>From</label><input type="text" id="admAddFrom" placeholder="Origin">
-                <label>To</label><input type="text" id="admAddTo" placeholder="Destination">
-                <label>Time</label><input type="text" id="admAddTime" placeholder="HH:MM (24h)">
-                <label>Notes</label><textarea id="admAddNotes" placeholder="Optional notes..."></textarea>
-                <div class="btn-row">
-                    <button class="btn btn-sm" id="admCancelAdd">Cancel</button>
-                    <button class="btn btn-sm btn-green" id="admSaveAdd">Save Bus</button>
-                </div>
-            </div>
-            <!-- Tab: Edit Bus -->
-            <div id="tab-edit" class="admin-tab hidden">
-                <label>Select Bus to Edit</label>
-                <select id="admEditSelect"><option value="">-- Choose --</option></select>
-                <label>Bus Number</label><input type="text" id="admEditBusNo">
-                <label>Type</label><select id="admEditType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
-                <label>From</label><input type="text" id="admEditFrom">
-                <label>To</label><input type="text" id="admEditTo">
-                <label>Time</label><input type="text" id="admEditTime">
-                <label>Notes</label><textarea id="admEditNotes"></textarea>
-                <div class="btn-row">
-                    <button class="btn btn-sm btn-danger" id="admDeleteBus">🗑️ Delete</button>
-                    <button class="btn btn-sm" id="admCancelEdit">Cancel</button>
-                    <button class="btn btn-sm btn-green" id="admSaveEdit">Update Bus</button>
-                </div>
-            </div>
-            <!-- Tab: Alerts -->
-            <div id="tab-alerts" class="admin-tab hidden">
-                <label>Alert Message</label><input type="text" id="admAlertMsg" placeholder="e.g. Bus 9424 delayed by 20 min">
-                <div class="btn-row">
-                    <button class="btn btn-sm btn-danger" id="admClearAlert">Clear Alert</button>
-                    <button class="btn btn-sm btn-green" id="admSetAlert">Set Alert</button>
-                </div>
-            </div>
-            <!-- Tab: Live Update -->
-            <div id="tab-live" class="admin-tab hidden">
-                <label>Select Bus</label>
-                <select id="admLiveSelect"><option value="">-- Choose --</option></select>
-                <label>Live Status</label><select id="admLiveStatus"><option value="on-time">On Time</option><option value="delayed">Delayed</option><option value="early">Early</option></select>
-                <label>Live Location</label><input type="text" id="admLiveLocation" placeholder="e.g. Near Margao KTC">
-                <label>Delay (minutes)</label><input type="number" id="admLiveDelay" value="0" min="0">
-                <label>Crowd Level</label><select id="admLiveCrowd"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
-                <div class="btn-row">
-                    <button class="btn btn-sm" id="admCancelLive">Cancel</button>
-                    <button class="btn btn-sm btn-green" id="admSaveLive">Update Live</button>
-                </div>
-            </div>
-            <button class="btn btn-sm" id="adminCloseBtn" style="margin-top:12px;width:100%;">Close Panel</button>
-        </div>
+    <!-- Add Bus -->
+    <div id="atab-add" class="admin-section active">
+      <label>Bus Number</label><input type="text" id="admAddBusNo" placeholder="e.g. 9424">
+      <label>Type</label>
+      <select id="admAddType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
+      <label>From</label><input type="text" id="admAddFrom" placeholder="Origin">
+      <label>To</label><input type="text" id="admAddTo" placeholder="Destination">
+      <label>Time (HH:MM)</label><input type="time" id="admAddTime">
+      <label>Notes</label><textarea id="admAddNotes" placeholder="Optional notes..."></textarea>
+      <div class="btn-row">
+        <button class="btn sm" id="admCancelAdd">Cancel</button>
+        <button class="btn sm green-btn" id="admSaveAdd">Save Bus</button>
+      </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- ── SCRIPTS ─────────────────────────────── -->
-    <!-- ═══════════════════════════════════════════ -->
-    <script>
-        // ─────────────────────────────────────────────
-        // 🔥 FIREBASE CONFIGURATION
-        // ⚠️ REPLACE with your own Firebase project config
-        // ─────────────────────────────────────────────
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+    <!-- Edit Bus -->
+    <div id="atab-edit" class="admin-section">
+      <label>Select Bus</label>
+      <select id="admEditSelect"><option value="">-- Choose a bus --</option></select>
+      <label>Bus Number</label><input type="text" id="admEditBusNo">
+      <label>Type</label>
+      <select id="admEditType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
+      <label>From</label><input type="text" id="admEditFrom">
+      <label>To</label><input type="text" id="admEditTo">
+      <label>Time (HH:MM)</label><input type="time" id="admEditTime">
+      <label>Notes</label><textarea id="admEditNotes"></textarea>
+      <div class="btn-row">
+        <button class="btn sm danger" id="admDeleteBus">🗑 Delete</button>
+        <button class="btn sm" id="admCancelEdit">Cancel</button>
+        <button class="btn sm green-btn" id="admSaveEdit">Update</button>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div id="atab-alerts" class="admin-section">
+      <label>Alert Message (shown to all users)</label>
+      <input type="text" id="admAlertMsg" placeholder="e.g. Bus 9424 delayed by 20 min today">
+      <div class="btn-row">
+        <button class="btn sm danger" id="admClearAlert">Clear Alert</button>
+        <button class="btn sm accent" id="admSetAlert">Set Alert</button>
+      </div>
+    </div>
+
+    <!-- Live Update -->
+    <div id="atab-live" class="admin-section">
+      <label>Select Bus</label>
+      <select id="admLiveSelect"><option value="">-- Choose a bus --</option></select>
+      <label>Live Status</label>
+      <select id="admLiveStatus">
+        <option value="on-time">On Time</option>
+        <option value="delayed">Delayed</option>
+        <option value="early">Early</option>
+      </select>
+      <label>Current Location</label>
+      <input type="text" id="admLiveLocation" placeholder="e.g. Near Margao KTC">
+      <label>Delay (minutes)</label>
+      <input type="number" id="admLiveDelay" value="0" min="0">
+      <label>Crowd Level</label>
+      <select id="admLiveCrowd">
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+      <div class="btn-row">
+        <button class="btn sm" id="admCancelLive">Cancel</button>
+        <button class="btn sm green-btn" id="admSaveLive">Update Live Data</button>
+      </div>
+    </div>
+
+    <button class="btn sm" style="width:100%;margin-top:14px;justify-content:center;" id="adminCloseBtn">Close Panel</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TOAST CONTAINER
+══════════════════════════════════════ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ══════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════ -->
+<script>
+  // ════════════════════════════════════════
+  // 🔥 FIREBASE CONFIGURATION
+  // ════════════════════════════════════════
+  const firebaseConfig = {
+    apiKey: "AIzaSyDSeRWOqJWvIJjFhSG-5NrRvYtuTNevqOA",
+    authDomain: "zevbuild.firebaseapp.com",
+    databaseURL: "https://zevbuild-default-rtdb.firebaseio.com",
+    projectId: "zevbuild",
+    storageBucket: "zevbuild.firebasestorage.app",
+    messagingSenderId: "1088713528432",
+    appId: "1:1088713528432:web:862382454428a2f79090b5",
+    measurementId: "G-5MQ26F7GQE"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+
+  // ════════════════════════════════════════
+  // 🔥 SEED DATA — DO NOT ALTER, REMOVE, OR REGENERATE
+  // This is the permanent core database.
+  // ════════════════════════════════════════
+  const SEED = [
+    { id:'s1',   busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'07:00', notes:'Morning via KTC',                                            addedBy:'raju', verified:[] },
+    { id:'s2',   busNo:'4209',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:00', notes:'',                                                           addedBy:'raju', verified:[] },
+    { id:'s3',   busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:15', notes:'',                                                           addedBy:'raju', verified:['a','b','c','d','e'] },
+    { id:'s4',   busNo:'1747',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:44', notes:'Flacy Route',                                                addedBy:'raju', verified:[] },
+    { id:'s5',   busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:15', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:['a','b','c'] },
+    { id:'s6',   busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:36', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:[] },
+    { id:'s7',   busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:30', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:[] },
+    { id:'s8',   busNo:'4209',        type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:55', notes:'✅ Bus 4209 confirmed',                                      addedBy:'raju', verified:['x','y'] },
+    { id:'s9',   busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'13:30', notes:'⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus',           addedBy:'raju', verified:['a','b','c','d','e','f'] },
+    { id:'s10',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'14:40', notes:'Last College→Kamat bus',                                    addedBy:'raju', verified:[] },
+    { id:'s11',  busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'11:38', notes:'',                                                           addedBy:'raju', verified:[] },
+    { id:'s12',  busNo:'9424',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'12:47', notes:'',                                                           addedBy:'raju', verified:[] },
+    { id:'s13',  busNo:'4209',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:42', notes:'',                                                           addedBy:'raju', verified:[] },
+    { id:'s14',  busNo:'1747',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:50', notes:'⚡ Tight if catching 1:30 bus',                              addedBy:'raju', verified:[] },
+    { id:'s15',  busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'14:10', notes:'✅ Safe after 1:30 college bus',                             addedBy:'raju', verified:['a','b','c'] },
+    { id:'s16',  busNo:'KTC',         type:'ktc',      from:'Varca',                     to:'KTC Bus Stand',            time:'07:00', notes:'Morning KTC service',                                        addedBy:'raju', verified:[] },
+    { id:'s17',  busNo:'KTC',         type:'ktc',      from:'KTC Bus Stand',             to:'Margao',                   time:'08:30', notes:'',                                                           addedBy:'raju', verified:[] },
+    { id:'s18',  busNo:'7721',        type:'general',  from:'ACMSR College',             to:'Margao',                   time:'13:00', notes:'Via Navelim',                                                addedBy:'raju', verified:[] },
+    { id:'s20',  busNo:'5463',        type:'general',  from:'ACMSR College',             to:'Kamat',                    time:'16:40', notes:'Evening bus',                                                addedBy:'raju', verified:[] },
+    { id:'s21',  busNo:'MOB1',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'07:30', notes:'Arrives Margao ~8:40 AM',                                   addedBy:'raju', verified:[] },
+    { id:'s22',  busNo:'MOB2',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'09:55', notes:'Arrives Margao ~11:30 AM',                                  addedBy:'raju', verified:[] },
+    { id:'s23',  busNo:'MOB3',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'13:05', notes:'Arrives Margao ~3:00 PM',                                   addedBy:'raju', verified:[] },
+    { id:'s24',  busNo:'MOB4',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'16:45', notes:'Arrives Margao ~5:50 PM',                                   addedBy:'raju', verified:[] },
+    { id:'s25',  busNo:'MOB1',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'08:40', notes:'Departs after 7:30 AM Mobor bus',                           addedBy:'raju', verified:[] },
+    { id:'s26',  busNo:'MOB2',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'11:30', notes:'Departs after 9:55 AM Mobor bus',                           addedBy:'raju', verified:[] },
+    { id:'s27',  busNo:'MOB3',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'15:00', notes:'Departs after 1:05 PM Mobor bus',                           addedBy:'raju', verified:[] },
+    { id:'s28',  busNo:'MOB4',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'17:50', notes:'Departs after 4:45 PM Mobor bus',                           addedBy:'raju', verified:[] },
+    { id:'s43',  busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'11:38', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
+    { id:'s44',  busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'12:47', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
+    { id:'s45',  busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:42', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
+    { id:'s46',  busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:50', notes:'⚡ Tight — only if 1:30 PM college bus on time',            addedBy:'raju', verified:[] },
+    { id:'s47',  busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'14:10', notes:'✅ Safe connection after 1:30 PM College bus',               addedBy:'raju', verified:[] },
+    { id:'s29',  busNo:'MRG-69',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:15', notes:'Arrives KTC ~7:30 AM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
+    { id:'s32',  busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:50', notes:'Arrives KTC ~9:05 AM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
+    { id:'s35',  busNo:'MRG-374MB',   type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'12:10', notes:'Arrives KTC ~12:25 PM · Kadamba govt bus',                 addedBy:'raju', verified:[] },
+    { id:'s38',  busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'14:20', notes:'Arrives KTC ~2:35 PM · Kadamba govt bus (2nd trip)',       addedBy:'raju', verified:[] },
+    { id:'s41',  busNo:'MRG-66',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'16:30', notes:'Arrives KTC ~4:45 PM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
+    { id:'s30',  busNo:'PVT-CUR01',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:45', notes:'Arrives KTC ~8:00 AM · via Curtorim',                      addedBy:'raju', verified:[] },
+    { id:'s31',  busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:21', notes:'Arrives KTC ~8:35 AM · via Panaji route',                  addedBy:'raju', verified:[] },
+    { id:'s33',  busNo:'PVT-MAI05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'09:15', notes:'Arrives KTC ~9:30 AM · via Maina',                         addedBy:'raju', verified:[] },
+    { id:'s34',  busNo:'PVT-CUR02',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'10:30', notes:'Arrives KTC ~10:45 AM · via Curtorim',                     addedBy:'raju', verified:[] },
+    { id:'s36',  busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:15', notes:'Arrives KTC ~1:30 PM · via Panaji route (2nd)',            addedBy:'raju', verified:[] },
+    { id:'s37',  busNo:'PVT-CUR03',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:45', notes:'Arrives KTC ~2:00 PM · via Curtorim',                      addedBy:'raju', verified:[] },
+    { id:'s39',  busNo:'PVT-MAI08',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'15:45', notes:'Arrives KTC ~4:00 PM · via Maina',                         addedBy:'raju', verified:[] },
+    { id:'s40',  busNo:'PVT-CUR04',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'17:15', notes:'Arrives KTC ~5:30 PM · via Curtorim',                      addedBy:'raju', verified:[] },
+    { id:'s42',  busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'18:10', notes:'Arrives KTC ~6:25 PM · via Panaji route (3rd)',            addedBy:'raju', verified:[] },
+    { id:'s43b', busNo:'PVT-CUR05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'19:00', notes:'Arrives KTC ~7:15 PM · via Curtorim',                      addedBy:'raju', verified:[] },
+  ];
+
+  // ════════════════════════════════════════
+  // 🔥 GLOBAL STATE
+  // ════════════════════════════════════════
+  let allBuses       = [...SEED];
+  let liveDataMap    = {};
+  let commentsMap    = {};
+  let favoritesSet   = new Set();
+  let currentUser    = null;
+  let isAdmin        = false;
+  let firestoreReady = false;
+  let activeTab      = 'schedule';
+
+  // reminders: { busId: { leadMins, repeat, busData } }
+  let reminders = JSON.parse(localStorage.getItem('cmsrReminders') || '{}');
+  let reminderTimers = {};
+
+  const ADMIN_EMAIL = 'zevbuildstudio@gmail.com';
+
+  // ════════════════════════════════════════
+  // 🔥 DOM REFS
+  // ════════════════════════════════════════
+  const $busList      = document.getElementById('busList');
+  const $favList      = document.getElementById('favList');
+  const $noResults    = document.getElementById('noResults');
+  const $favEmpty     = document.getElementById('favEmpty');
+  const $resultCount  = document.getElementById('resultCount');
+  const $searchInput  = document.getElementById('searchInput');
+  const $filterType   = document.getElementById('filterType');
+  const $filterFrom   = document.getElementById('filterFrom');
+  const $filterTo     = document.getElementById('filterTo');
+  const $heroBusInfo  = document.getElementById('heroBusInfo');
+  const $heroBusRoute = document.getElementById('heroBusRoute');
+  const $countdownRing= document.getElementById('countdownRing');
+  const $countdownMins= document.getElementById('countdownMins');
+  const $alertBar     = document.getElementById('alertBar');
+  const $alertMsg     = document.getElementById('alertMsg');
+  const $loginBtn     = document.getElementById('loginBtn');
+  const $logoutBtn    = document.getElementById('logoutBtn');
+  const $userChip     = document.getElementById('userChip');
+  const $adminBtn     = document.getElementById('adminBtn');
+  const $reminderBadge= document.getElementById('reminderBadge');
+
+  // ════════════════════════════════════════
+  // ⏰ TIME HELPERS
+  // ════════════════════════════════════════
+  function nowMinutes() {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }
+  function timeToMins(hhmm) {
+    const [h,m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
+  function minsUntil(hhmm) {
+    return timeToMins(hhmm) - nowMinutes();
+  }
+  function fmt12(hhmm) {
+    const [h,m] = hhmm.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12  = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 HERO — NEXT BUS COUNTDOWN
+  // ════════════════════════════════════════
+  function updateHero() {
+    const now = nowMinutes();
+    const upcoming = allBuses
+      .map(b => ({ ...b, minsLeft: timeToMins(b.time) - now }))
+      .filter(b => b.minsLeft > 0 && b.minsLeft <= 480)  // within 8 hours
+      .sort((a,b) => a.minsLeft - b.minsLeft);
+
+    const next = upcoming[0];
+    if (!next) {
+      $heroBusInfo.textContent = 'No more buses today 😴';
+      $heroBusRoute.textContent = 'Check back tomorrow morning';
+      $countdownMins.textContent = '--';
+      $countdownRing.style.strokeDashoffset = '226';
+      return;
+    }
+
+    $heroBusInfo.textContent  = `Bus ${next.busNo} — ${fmt12(next.time)}`;
+    $heroBusRoute.textContent = `${next.from} → ${next.to}`;
+
+    const mins  = next.minsLeft;
+    const total = Math.min(60, Math.max(mins, 1));
+    const ratio = Math.min(1, mins / total);
+    const offset= 226 - (226 * ratio);
+
+    $countdownMins.textContent = mins;
+    $countdownRing.style.strokeDashoffset = offset;
+    $countdownRing.className = 'countdown-ring-fg' + (mins <= 5 ? ' urgent' : mins <= 15 ? ' soon' : '');
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 POPULATE FILTER DROPDOWNS
+  // ════════════════════════════════════════
+  function populateDropdowns() {
+    const froms = [...new Set(allBuses.map(b => b.from))].sort();
+    const tos   = [...new Set(allBuses.map(b => b.to))].sort();
+
+    $filterFrom.innerHTML = '<option value="all">All Origins</option>' +
+      froms.map(f => `<option value="${f}">${f}</option>`).join('');
+    $filterTo.innerHTML = '<option value="all">All Destinations</option>' +
+      tos.map(t => `<option value="${t}">${t}</option>`).join('');
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 RENDER BUS CARDS
+  // ════════════════════════════════════════
+  function getBusStatus(b) {
+    const mins = minsUntil(b.time);
+    if (mins < -5)   return 'passed';
+    if (mins <= 10)  return 'urgent';
+    if (mins <= 30)  return 'soon';
+    return 'upcoming';
+  }
+
+  function renderCard(b, container) {
+    const live  = liveDataMap[b.id] || {};
+    const status= live.status || 'on-time';
+    const delay = live.delay  || 0;
+    const crowd = live.crowd  || 'low';
+    const verifiedCount = (b.verified && b.verified.length) ? b.verified.length : 0;
+    const isFaved       = favoritesSet.has(b.id);
+    const comments      = commentsMap[b.id] || [];
+    const busStatus     = getBusStatus(b);
+    const minsLeft      = minsUntil(b.time);
+    const hasReminder   = !!reminders[b.id];
+
+    let timeRemLabel = '';
+    let timeRemClass = '';
+    if (busStatus === 'passed') {
+      timeRemLabel = 'Already departed'; timeRemClass = 'gone';
+    } else if (busStatus === 'urgent') {
+      timeRemLabel = `🚨 ${minsLeft} min left!`; timeRemClass = 'urgent';
+    } else if (busStatus === 'soon') {
+      timeRemLabel = `⚠️ ${minsLeft} min left`; timeRemClass = 'soon';
+    } else {
+      timeRemLabel = `${minsLeft} min away`; timeRemClass = '';
+    }
+
+    let cardClass = `bus-card type-${b.type}`;
+    let cardBadge = '';
+    if (busStatus === 'urgent') { cardClass += ' departing-soon'; cardBadge = `<span class="status-badge soon">Departing Soon</span>`; }
+    else if (busStatus === 'soon') { cardBadge = `<span class="status-badge soon">Coming Up</span>`; }
+    else if (busStatus === 'passed') { cardBadge = `<span class="status-badge passed">Departed</span>`; }
+
+    let livePillHtml = `<span class="live-pill ${status}"><span class="live-dot"></span>${status === 'delayed' ? `Delayed ${delay}min` : status === 'early' ? 'Early' : 'On Time'}</span>`;
+    let crowdHtml    = `<span class="crowd-pill ${crowd}">👥 ${crowd.charAt(0).toUpperCase()+crowd.slice(1)}</span>`;
+
+    return `
+    <div class="${cardClass}" data-id="${b.id}">
+      <div class="card-top">
+        <div class="card-left">
+          <div class="card-bus-no">
+            🚌 ${b.busNo}
+            <span class="type-badge ${b.type}">${b.type.toUpperCase()}</span>
+          </div>
+          <div class="card-route">
+            <strong>${b.from}</strong> → <strong>${b.to}</strong>
+          </div>
+        </div>
+        <div class="card-right">
+          <div class="card-time">${fmt12(b.time)}</div>
+          <div class="time-remaining ${timeRemClass}">${timeRemLabel}</div>
+        </div>
+      </div>
+      ${b.notes ? `<div class="card-notes">📝 ${b.notes}</div>` : ''}
+      <div class="card-meta">
+        ${livePillHtml}
+        ${live.location ? `<span style="font-size:0.7rem;color:var(--text2)">📍 ${live.location}</span>` : ''}
+        ${crowdHtml}
+        ${verifiedCount > 0 ? `<span class="verified-pill">✅ ${verifiedCount} verified</span>` : ''}
+        ${cardBadge}
+      </div>
+      <div class="card-actions">
+        <button class="fav-btn" data-action="fav" data-id="${b.id}" title="Favorite">${isFaved ? '⭐' : '☆'}</button>
+        <button class="remind-btn ${hasReminder ? 'active-reminder' : 'set'}" data-action="remind" data-id="${b.id}">
+          ${hasReminder ? '🔔 Reminder Set' : '🔔 Remind Me'}
+        </button>
+        ${currentUser ? `<button class="btn-xs green" data-action="verify" data-id="${b.id}">✅ Verify</button>` : ''}
+        ${currentUser ? `<button class="btn-xs" data-action="crowd" data-id="${b.id}">👥 Crowd</button>` : ''}
+        <button class="btn-xs" data-action="toggle-comments" data-id="${b.id}">💬 ${comments.length || ''}</button>
+      </div>
+      <div class="comment-section" id="cs-${b.id}">
+        ${comments.map(c => `
+          <div class="comment-item">
+            <strong>${c.user}</strong>: ${c.text}
+            <span class="comment-time">${c.timestamp ? new Date(c.timestamp.toDate ? c.timestamp.toDate() : c.timestamp).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'}) : ''}</span>
+          </div>`).join('')}
+        ${currentUser ? `
+          <div class="comment-row">
+            <input type="text" placeholder="Add a comment..." data-id="${b.id}" data-action="add-comment" autocomplete="off" />
+            <button data-action="submit-comment" data-id="${b.id}">Send</button>
+          </div>` : `<div style="font-size:0.72rem;color:var(--text3);margin-top:6px;">Sign in to comment.</div>`}
+      </div>
+    </div>`;
+  }
+
+  function getFilteredBuses() {
+    const search   = $searchInput.value.toLowerCase().trim();
+    const typeF    = $filterType.value;
+    const fromF    = $filterFrom.value;
+    const toF      = $filterTo.value;
+
+    return allBuses.filter(b => {
+      if (typeF !== 'all' && b.type !== typeF) return false;
+      if (fromF !== 'all' && b.from !== fromF) return false;
+      if (toF   !== 'all' && b.to   !== toF)   return false;
+      if (search) {
+        const hay = `${b.busNo} ${b.from} ${b.to} ${b.notes} ${b.type} ${b.time}`.toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      return true;
+    }).sort((a,b) => timeToMins(a.time) - timeToMins(b.time));
+  }
+
+  function renderSchedule() {
+    const filtered = getFilteredBuses();
+    $resultCount.textContent = `${filtered.length} bus${filtered.length !== 1 ? 'es' : ''}`;
+    if (filtered.length === 0) {
+      $busList.innerHTML = '';
+      $noResults.classList.remove('hidden');
+      return;
+    }
+    $noResults.classList.add('hidden');
+    $busList.innerHTML = filtered.map(b => renderCard(b)).join('');
+    attachCardListeners($busList);
+  }
+
+  function renderFavorites() {
+    const favBuses = allBuses.filter(b => favoritesSet.has(b.id));
+    if (favBuses.length === 0) {
+      $favList.innerHTML = '';
+      $favEmpty.classList.remove('hidden');
+      return;
+    }
+    $favEmpty.classList.add('hidden');
+    $favList.innerHTML = favBuses.sort((a,b) => timeToMins(a.time) - timeToMins(b.time))
+      .map(b => renderCard(b)).join('');
+    attachCardListeners($favList);
+  }
+
+  function renderAll() {
+    renderSchedule();
+    renderFavorites();
+    renderRemindersList();
+    updateHero();
+    updateReminderBadge();
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 CARD EVENT LISTENERS
+  // ════════════════════════════════════════
+  function attachCardListeners(container) {
+    container.querySelectorAll('[data-action]').forEach(el => {
+      el.addEventListener('click', handleCardAction);
+    });
+  }
+
+  function handleCardAction(e) {
+    e.stopPropagation();
+    const action = e.currentTarget.dataset.action;
+    const id     = e.currentTarget.dataset.id;
+    if (!id && action !== 'submit-comment') return;
+
+    switch(action) {
+      case 'fav':             toggleFavorite(id); break;
+      case 'remind':          openReminderModal(id); break;
+      case 'verify':          verifyBus(id); break;
+      case 'crowd':           promptCrowd(id); break;
+      case 'toggle-comments': toggleComments(id); break;
+      case 'add-comment':     break; // handled by keydown
+      case 'submit-comment':  submitComment(id, e.currentTarget.closest('.comment-row')); break;
+    }
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 FAVORITES
+  // ════════════════════════════════════════
+  function toggleFavorite(id) {
+    if (!currentUser) { showToast('Sign In Required', 'Please sign in to save favorites.', '⭐'); return; }
+    if (favoritesSet.has(id)) favoritesSet.delete(id);
+    else                       favoritesSet.add(id);
+    syncFavorites();
+    renderAll();
+  }
+
+  function syncFavorites() {
+    if (!currentUser || !firestoreReady) return;
+    db.collection('users').doc(currentUser.uid).set({
+      favorites: [...favoritesSet],
+      email: currentUser.email,
+      displayName: currentUser.displayName,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).catch(e => console.warn('Fav sync:', e));
+  }
+
+  function loadFavorites() {
+    if (!currentUser) { favoritesSet.clear(); renderAll(); return; }
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+      favoritesSet = new Set(doc.exists && doc.data().favorites ? doc.data().favorites : []);
+      renderAll();
+    }).catch(() => { favoritesSet.clear(); renderAll(); });
+  }
+
+  // ════════════════════════════════════════
+  // 🔔 REMINDER SYSTEM
+  // ════════════════════════════════════════
+  let pendingReminderBusId = null;
+  let selectedLeadMins     = 5;
+
+  function openReminderModal(id) {
+    pendingReminderBusId = id;
+    const bus = allBuses.find(b => b.id === id);
+    if (!bus) return;
+
+    // Pre-fill lead time if reminder already exists
+    const existing = reminders[id];
+    selectedLeadMins = existing ? existing.leadMins : 5;
+
+    document.getElementById('reminderModalSub').textContent =
+      `Bus ${bus.busNo} — ${bus.from} → ${bus.to} at ${fmt12(bus.time)}`;
+    document.getElementById('reminderRepeat').value = existing ? existing.repeat : 'daily';
+
+    // Update chip selection
+    document.querySelectorAll('.lead-chip').forEach(c => {
+      c.classList.toggle('selected', parseInt(c.dataset.mins) === selectedLeadMins);
+    });
+
+    document.getElementById('reminderModal').classList.remove('hidden');
+  }
+
+  document.querySelectorAll('.lead-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      selectedLeadMins = parseInt(chip.dataset.mins);
+      document.querySelectorAll('.lead-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+    });
+  });
+
+  document.getElementById('reminderCancelBtn').addEventListener('click', () => {
+    document.getElementById('reminderModal').classList.add('hidden');
+    pendingReminderBusId = null;
+  });
+
+  document.getElementById('reminderSaveBtn').addEventListener('click', () => {
+    if (!pendingReminderBusId) return;
+    const bus    = allBuses.find(b => b.id === pendingReminderBusId);
+    const repeat = document.getElementById('reminderRepeat').value;
+
+    reminders[pendingReminderBusId] = { leadMins: selectedLeadMins, repeat, busData: bus };
+    localStorage.setItem('cmsrReminders', JSON.stringify(reminders));
+
+    document.getElementById('reminderModal').classList.add('hidden');
+    pendingReminderBusId = null;
+
+    requestNotifPermission();
+    scheduleAllReminders();
+    renderAll();
+    showToast('Reminder Set! 🔔', `You'll be notified ${selectedLeadMins} min before Bus ${bus.busNo}.`, '🔔');
+  });
+
+  async function requestNotifPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+  }
+
+  function scheduleAllReminders() {
+    // Clear existing timers
+    Object.values(reminderTimers).forEach(clearTimeout);
+    reminderTimers = {};
+
+    const now = nowMinutes();
+    Object.entries(reminders).forEach(([busId, rem]) => {
+      const bus     = allBuses.find(b => b.id === busId);
+      if (!bus) return;
+      const triggerAt = timeToMins(bus.time) - rem.leadMins;
+      let msUntil   = (triggerAt - now) * 60 * 1000;
+
+      if (msUntil <= 0) return; // already passed today
+
+      reminderTimers[busId] = setTimeout(() => {
+        fireReminder(bus, rem.leadMins);
+        if (rem.repeat === 'once') {
+          delete reminders[busId];
+          localStorage.setItem('cmsrReminders', JSON.stringify(reminders));
+          renderAll();
+        }
+      }, msUntil);
+    });
+  }
+
+  function fireReminder(bus, leadMins) {
+    const title = `🚌 Bus ${bus.busNo} in ${leadMins} min!`;
+    const body  = `${bus.from} → ${bus.to} departs at ${fmt12(bus.time)}. Get ready!`;
+
+    // Browser notification
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '🚌', tag: `bus-${bus.id}` });
+    }
+
+    // In-app toast
+    showToast(title, body, '🚌', true, 10000);
+  }
+
+  function removeReminder(busId) {
+    delete reminders[busId];
+    localStorage.setItem('cmsrReminders', JSON.stringify(reminders));
+    if (reminderTimers[busId]) { clearTimeout(reminderTimers[busId]); delete reminderTimers[busId]; }
+    renderAll();
+    showToast('Reminder Removed', 'Reminder has been cancelled.', '🔕');
+  }
+
+  function renderRemindersList() {
+    const $list = document.getElementById('remindersList');
+    const $empty= document.getElementById('remindersEmpty');
+    const entries = Object.entries(reminders);
+    if (entries.length === 0) {
+      $list.innerHTML = '';
+      $empty.classList.remove('hidden');
+      return;
+    }
+    $empty.classList.add('hidden');
+    $list.innerHTML = entries.map(([busId, rem]) => {
+      const bus = allBuses.find(b => b.id === busId) || rem.busData;
+      if (!bus) return '';
+      const minsLeft = minsUntil(bus.time);
+      return `
+      <div class="reminder-card">
+        <div class="r-icon">🔔</div>
+        <div class="r-info">
+          <div class="r-bus">Bus ${bus.busNo}</div>
+          <div class="r-route">${bus.from} → ${bus.to}</div>
+          <div class="r-time">⏰ ${fmt12(bus.time)} · ${rem.leadMins}min early · ${rem.repeat === 'daily' ? '🔄 Daily' : '1× Only'}</div>
+          ${minsLeft > 0 ? `<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">${minsLeft > rem.leadMins ? `Fires in ${minsLeft - rem.leadMins} min` : '🔔 Firing soon!'}</div>` : `<div style="font-size:0.72rem;color:var(--text3);">Already departed today</div>`}
+        </div>
+        <div class="r-actions">
+          <button class="btn sm" onclick="openReminderModal('${busId}')">Edit</button>
+          <button class="btn sm danger" onclick="removeReminder('${busId}')">Remove</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function updateReminderBadge() {
+    const count = Object.keys(reminders).length;
+    if (count > 0) {
+      $reminderBadge.textContent = count;
+      $reminderBadge.classList.remove('hidden');
+    } else {
+      $reminderBadge.classList.add('hidden');
+    }
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 VERIFY BUS
+  // ════════════════════════════════════════
+  function verifyBus(id) {
+    if (!currentUser) return;
+    const ref = db.collection('bus_timings').doc(id);
+    db.runTransaction(async tx => {
+      const doc = await tx.get(ref);
+      if (!doc.exists) return;
+      const v = doc.data().verified || [];
+      if (!v.includes(currentUser.uid)) v.push(currentUser.uid);
+      tx.update(ref, { verified: v });
+    }).then(() => showToast('Verified!', 'Thanks for verifying this bus.', '✅'))
+      .catch(e => console.warn(e));
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 CROWD REPORT
+  // ════════════════════════════════════════
+  function promptCrowd(id) {
+    if (!currentUser) return;
+    const level = prompt('Crowd level on this bus?\nType: low, medium, or high', 'medium');
+    if (!['low','medium','high'].includes((level||'').toLowerCase())) return;
+    db.collection('bus_timings').doc(id).collection('crowd_reports').doc(currentUser.uid).set({
+      level: level.toLowerCase(),
+      reportedBy: currentUser.displayName || currentUser.email,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      aggregateCrowd(id);
+      showToast('Thanks!', 'Crowd report submitted.', '👥');
+    });
+  }
+
+  function aggregateCrowd(id) {
+    db.collection('bus_timings').doc(id).collection('crowd_reports').get().then(snap => {
+      const reports = [];
+      snap.forEach(d => reports.push(d.data().level));
+      let crowd = 'low';
+      const hi  = reports.filter(r => r === 'high').length;
+      const med = reports.filter(r => r === 'medium').length;
+      if (hi > reports.length * 0.4) crowd = 'high';
+      else if (med + hi > reports.length * 0.5) crowd = 'medium';
+      db.collection('bus_timings').doc(id).update({ crowd, crowdReportCount: reports.length });
+    });
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 COMMENTS
+  // ════════════════════════════════════════
+  function toggleComments(id) {
+    const el = document.getElementById(`cs-${id}`);
+    if (el) el.classList.toggle('open');
+  }
+
+  function submitComment(id, row) {
+    if (!currentUser || !row) return;
+    const input = row.querySelector('input');
+    const text  = input ? input.value.trim() : '';
+    if (!text) return;
+    db.collection('bus_timings').doc(id).collection('comments').add({
+      user: currentUser.displayName || currentUser.email,
+      text,
+      uid: currentUser.uid,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => { if (input) input.value = ''; })
+      .catch(e => console.warn(e));
+  }
+
+  // Handle Enter key in comment inputs
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.dataset.action === 'add-comment') {
+      const id  = e.target.dataset.id;
+      const row = e.target.closest('.comment-row');
+      submitComment(id, row);
+    }
+  });
+
+  function loadComments(id) {
+    db.collection('bus_timings').doc(id).collection('comments')
+      .orderBy('timestamp','asc').onSnapshot(snap => {
+        commentsMap[id] = [];
+        snap.forEach(d => commentsMap[id].push(d.data()));
+        renderAll();
+      });
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 TOAST NOTIFICATIONS
+  // ════════════════════════════════════════
+  function showToast(title, body, icon = '🚌', isReminder = false, duration = 4000) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = 'toast' + (isReminder ? ' reminder-toast' : '');
+    toast.innerHTML = `
+      <div class="t-icon">${icon}</div>
+      <div class="t-content">
+        <div class="t-title">${title}</div>
+        <div class="t-body">${body}</div>
+      </div>
+      <button class="t-close">×</button>`;
+    container.appendChild(toast);
+    toast.querySelector('.t-close').addEventListener('click', () => toast.remove());
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.4s'; setTimeout(() => toast.remove(), 400); }, duration);
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 TABS
+  // ════════════════════════════════════════
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`panel-${tab}`).classList.add('active');
+      activeTab = tab;
+    });
+  });
+
+  // ════════════════════════════════════════
+  // 🔥 FILTERS
+  // ════════════════════════════════════════
+  $searchInput.addEventListener('input',  renderSchedule);
+  $filterType.addEventListener('change',  renderSchedule);
+  $filterFrom.addEventListener('change',  renderSchedule);
+  $filterTo.addEventListener('change',    renderSchedule);
+  document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+    $searchInput.value = '';
+    $filterType.value = $filterFrom.value = $filterTo.value = 'all';
+    renderSchedule();
+  });
+
+  // ════════════════════════════════════════
+  // 🔥 FIREBASE: SEED → FIRESTORE
+  // ════════════════════════════════════════
+  async function syncSeedToFirestore() {
+    try {
+      const snap = await db.collection('bus_timings').limit(1).get();
+      if (snap.empty) {
+        console.log('🔥 Uploading SEED data to Firestore...');
+        const batch = db.batch();
+        SEED.forEach(bus => {
+          const ref = db.collection('bus_timings').doc(bus.id);
+          batch.set(ref, {
+            busNo: bus.busNo, type: bus.type, from: bus.from, to: bus.to,
+            time: bus.time, notes: bus.notes, addedBy: bus.addedBy,
+            verified: bus.verified || [],
+            liveStatus: 'on-time', liveLocation: '', delay: 0,
+            crowd: 'low', crowdReportCount: 0,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        });
+        await batch.commit();
+        console.log('✅ SEED uploaded.');
+      }
+    } catch(e) { console.warn('Firestore seed check (offline?):', e.message); }
+  }
+
+  // ════════════════════════════════════════
+  // 🔥 FIRESTORE LISTENER
+  // ════════════════════════════════════════
+  function setupFirestoreListener() {
+    db.collection('bus_timings').onSnapshot(snap => {
+      const firestoreData = [];
+      snap.forEach(doc => {
+        const d = doc.data();
+        firestoreData.push({
+          id: doc.id, busNo: d.busNo, type: d.type,
+          from: d.from, to: d.to, time: d.time,
+          notes: d.notes || '', addedBy: d.addedBy || 'raju',
+          verified: d.verified || [],
+          liveStatus: d.liveStatus || 'on-time',
+          liveLocation: d.liveLocation || '',
+          delay: d.delay || 0,
+          crowd: d.crowd || 'low',
+        });
+      });
+
+      const firestoreIds = new Set(firestoreData.map(b => b.id));
+      const seedOnly     = SEED.filter(b => !firestoreIds.has(b.id));
+      allBuses           = [...firestoreData, ...seedOnly];
+
+      liveDataMap = {};
+      allBuses.forEach(b => {
+        liveDataMap[b.id] = {
+          status:   b.liveStatus   || 'on-time',
+          location: b.liveLocation || '',
+          delay:    b.delay        || 0,
+          crowd:    b.crowd        || 'low',
         };
+      });
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+      firestoreReady = true;
+      populateDropdowns();
+      renderAll();
+      firestoreData.forEach(b => loadComments(b.id));
+    }, err => {
+      console.warn('Firestore listener error:', err.message);
+      allBuses = [...SEED];
+      liveDataMap = {};
+      SEED.forEach(b => { liveDataMap[b.id] = { status:'on-time', location:'', delay:0, crowd:'low' }; });
+      firestoreReady = true;
+      populateDropdowns();
+      renderAll();
+    });
+  }
 
-        // ─────────────────────────────────────────────
-        // 🔥 SEED DATA — DO NOT ALTER, REMOVE, OR REGENERATE
-        // This is the permanent core database.
-        // ─────────────────────────────────────────────
-        const SEED = [
-            { id: 's1', busNo: '9424', type: 'general', from: 'Varca', to: 'ACMSR College', time: '07:00',
-                notes: 'Morning via KTC', addedBy: 'raju', verified: [] },
-            { id: 's2', busNo: '4209', type: 'general', from: 'Varca', to: 'ACMSR College', time: '11:00',
-                notes: '', addedBy: 'raju', verified: [] },
-            { id: 's3', busNo: '9424', type: 'general', from: 'Varca', to: 'ACMSR College', time: '11:15',
-                notes: '', addedBy: 'raju', verified: ['a', 'b', 'c', 'd', 'e'] },
-            { id: 's4', busNo: '1747', type: 'general', from: 'Varca', to: 'ACMSR College', time: '11:44',
-                notes: 'Flacy Route', addedBy: 'raju', verified: [] },
-            { id: 's5', busNo: '?', type: 'general', from: 'ACMSR College', to: 'Kamat Bus Stand', time: '11:15',
-                notes: 'Bus no. not confirmed yet ✏️', addedBy: 'raju', verified: ['a', 'b', 'c'] },
-            { id: 's6', busNo: '?', type: 'general', from: 'ACMSR College', to: 'Kamat Bus Stand', time: '11:36',
-                notes: 'Bus no. not confirmed yet ✏️', addedBy: 'raju', verified: [] },
-            { id: 's7', busNo: '?', type: 'general', from: 'ACMSR College', to: 'Kamat Bus Stand', time: '12:30',
-                notes: 'Bus no. not confirmed yet ✏️', addedBy: 'raju', verified: [] },
-            { id: 's8', busNo: '4209', type: 'general', from: 'ACMSR College', to: 'Kamat Bus Stand', time: '12:55',
-                notes: '✅ Bus 4209 confirmed', addedBy: 'raju', verified: ['x', 'y'] },
-            { id: 's9', busNo: '?', type: 'general', from: 'ACMSR College', to: 'Kamat Bus Stand', time: '13:30',
-                notes: '⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus', addedBy: 'raju',
-                verified: ['a', 'b', 'c', 'd', 'e', 'f'] },
-            { id: 's10', busNo: '?', type: 'general', from: 'ACMSR College', to: 'Kamat Bus Stand', time: '14:40',
-                notes: 'Last College→Kamat bus', addedBy: 'raju', verified: [] },
-            { id: 's11', busNo: '5463', type: 'general', from: 'Kamat', to: 'Varca', time: '11:38', notes: '',
-                addedBy: 'raju', verified: [] },
-            { id: 's12', busNo: '9424', type: 'general', from: 'Kamat', to: 'Varca', time: '12:47', notes: '',
-                addedBy: 'raju', verified: [] },
-            { id: 's13', busNo: '4209', type: 'general', from: 'Kamat', to: 'Varca', time: '13:42', notes: '',
-                addedBy: 'raju', verified: [] },
-            { id: 's14', busNo: '1747', type: 'general', from: 'Kamat', to: 'Varca', time: '13:50',
-                notes: '⚡ Tight if catching 1:30 bus', addedBy: 'raju', verified: [] },
-            { id: 's15', busNo: '5463', type: 'general', from: 'Kamat', to: 'Varca', time: '14:10',
-                notes: '✅ Safe after 1:30 college bus', addedBy: 'raju', verified: ['a', 'b', 'c'] },
-            { id: 's16', busNo: 'KTC', type: 'ktc', from: 'Varca', to: 'KTC Bus Stand', time: '07:00',
-                notes: 'Morning KTC service', addedBy: 'raju', verified: [] },
-            { id: 's17', busNo: 'KTC', type: 'ktc', from: 'KTC Bus Stand', to: 'Margao', time: '08:30', notes: '',
-                addedBy: 'raju', verified: [] },
-            { id: 's18', busNo: '7721', type: 'general', from: 'ACMSR College', to: 'Margao', time: '13:00',
-                notes: 'Via Navelim', addedBy: 'raju', verified: [] },
-            { id: 's20', busNo: '5463', type: 'general', from: 'ACMSR College', to: 'Kamat', time: '16:40',
-                notes: 'Evening bus', addedBy: 'raju', verified: [] },
-            { id: 's21', busNo: 'MOB1', type: 'general', from: 'Mobor', to: 'Margao', time: '07:30',
-                notes: 'Arrives Margao ~8:40 AM', addedBy: 'raju', verified: [] },
-            { id: 's22', busNo: 'MOB2', type: 'general', from: 'Mobor', to: 'Margao', time: '09:55',
-                notes: 'Arrives Margao ~11:30 AM', addedBy: 'raju', verified: [] },
-            { id: 's23', busNo: 'MOB3', type: 'general', from: 'Mobor', to: 'Margao', time: '13:05',
-                notes: 'Arrives Margao ~3:00 PM', addedBy: 'raju', verified: [] },
-            { id: 's24', busNo: 'MOB4', type: 'general', from: 'Mobor', to: 'Margao', time: '16:45',
-                notes: 'Arrives Margao ~5:50 PM', addedBy: 'raju', verified: [] },
-            { id: 's25', busNo: 'MOB1', type: 'general', from: 'Margao', to: 'Mobor', time: '08:40',
-                notes: 'Departs after 7:30 AM Mobor bus', addedBy: 'raju', verified: [] },
-            { id: 's26', busNo: 'MOB2', type: 'general', from: 'Margao', to: 'Mobor', time: '11:30',
-                notes: 'Departs after 9:55 AM Mobor bus', addedBy: 'raju', verified: [] },
-            { id: 's27', busNo: 'MOB3', type: 'general', from: 'Margao', to: 'Mobor', time: '15:00',
-                notes: 'Departs after 1:05 PM Mobor bus', addedBy: 'raju', verified: [] },
-            { id: 's28', busNo: 'MOB4', type: 'general', from: 'Margao', to: 'Mobor', time: '17:50',
-                notes: 'Departs after 4:45 PM Mobor bus', addedBy: 'raju', verified: [] },
-            { id: 's43', busNo: '?', type: 'general', from: 'Kamat', to: 'Mobor', time: '11:38',
-                notes: 'Via Benaulim & Cavelossim', addedBy: 'raju', verified: [] },
-            { id: 's44', busNo: '?', type: 'general', from: 'Kamat', to: 'Mobor', time: '12:47',
-                notes: 'Via Benaulim & Cavelossim', addedBy: 'raju', verified: [] },
-            { id: 's45', busNo: '?', type: 'general', from: 'Kamat', to: 'Mobor', time: '13:42',
-                notes: 'Via Benaulim & Cavelossim', addedBy: 'raju', verified: [] },
-            { id: 's46', busNo: '?', type: 'general', from: 'Kamat', to: 'Mobor', time: '13:50',
-                notes: '⚡ Tight — only if 1:30 PM college bus on time', addedBy: 'raju', verified: [] },
-            { id: 's47', busNo: '?', type: 'general', from: 'Kamat', to: 'Mobor', time: '14:10',
-                notes: '✅ Safe connection after 1:30 PM College bus', addedBy: 'raju', verified: [] },
-            { id: 's29', busNo: 'MRG-69', type: 'ktc', from: 'ACMSR College (Borda)', to: 'Margao KTC Bus Stand',
-                time: '07:15', notes: 'Arrives KTC ~7:30 AM · Kadamba govt bus', addedBy: 'raju', verified: [] },
-            { id: 's32', busNo: 'MRG-138', type: 'ktc', from: 'ACMSR College (Borda)', to: 'Margao KTC Bus Stand',
-                time: '08:50', notes: 'Arrives KTC ~9:05 AM · Kadamba govt bus', addedBy: 'raju', verified: [] },
-            { id: 's35', busNo: 'MRG-374MB', type: 'ktc', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '12:10', notes: 'Arrives KTC ~12:25 PM · Kadamba govt bus',
-                addedBy: 'raju', verified: [] },
-            { id: 's38', busNo: 'MRG-138', type: 'ktc', from: 'ACMSR College (Borda)', to: 'Margao KTC Bus Stand',
-                time: '14:20', notes: 'Arrives KTC ~2:35 PM · Kadamba govt bus (2nd trip)', addedBy: 'raju',
-                verified: [] },
-            { id: 's41', busNo: 'MRG-66', type: 'ktc', from: 'ACMSR College (Borda)', to: 'Margao KTC Bus Stand',
-                time: '16:30', notes: 'Arrives KTC ~4:45 PM · Kadamba govt bus', addedBy: 'raju', verified: [] },
-            { id: 's30', busNo: 'PVT-CUR01', type: 'private', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '07:45', notes: 'Arrives KTC ~8:00 AM · via Curtorim',
-                addedBy: 'raju', verified: [] },
-            { id: 's31', busNo: 'PVT-PNI31', type: 'private', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '08:21', notes: 'Arrives KTC ~8:35 AM · via Panaji route',
-                addedBy: 'raju', verified: [] },
-            { id: 's33', busNo: 'PVT-MAI05', type: 'private', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '09:15', notes: 'Arrives KTC ~9:30 AM · via Maina',
-                addedBy: 'raju', verified: [] },
-            { id: 's34', busNo: 'PVT-CUR02', type: 'private', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '10:30', notes: 'Arrives KTC ~10:45 AM · via Curtorim',
-                addedBy: 'raju', verified: [] },
-            { id: 's36', busNo: 'PVT-PNI31', type: 'private', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '13:15', notes: 'Arrives KTC ~1:30 PM · via Panaji route (2nd)',
-                addedBy: 'raju', verified: [] },
-            { id: 's37', busNo: 'PVT-CUR03', type: 'private', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '13:45', notes: 'Arrives KTC ~2:00 PM · via Curtorim',
-                addedBy: 'raju', verified: [] },
-            { id: 's39', busNo: 'PVT-MAI08', type: 'private', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '15:45', notes: 'Arrives KTC ~4:00 PM · via Maina',
-                addedBy: 'raju', verified: [] },
-            { id: 's40', busNo: 'PVT-CUR04', type: 'private', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '17:15', notes: 'Arrives KTC ~5:30 PM · via Curtorim',
-                addedBy: 'raju', verified: [] },
-            { id: 's42', busNo: 'PVT-PNI31', type: 'private', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '18:10', notes: 'Arrives KTC ~6:25 PM · via Panaji route (3rd)',
-                addedBy: 'raju', verified: [] },
-            { id: 's43b', busNo: 'PVT-CUR05', type: 'private', from: 'ACMSR College (Borda)',
-                to: 'Margao KTC Bus Stand', time: '19:00', notes: 'Arrives KTC ~7:15 PM · via Curtorim',
-                addedBy: 'raju', verified: [] },
-        ];
-        // ⚠️ NOTE: Original seed had duplicate id 's43'. The second occurrence
-        // has been preserved with id 's43b' to avoid collision while keeping
-        // ALL data intact. This is the ONLY id adjustment made.
-        // ─────────────────────────────────────────────
+  // ════════════════════════════════════════
+  // 🔥 ALERT LISTENER
+  // ════════════════════════════════════════
+  function setupAlertListener() {
+    db.collection('app_settings').doc('alert').onSnapshot(doc => {
+      if (doc.exists && doc.data().message && doc.data().active) {
+        $alertMsg.textContent = doc.data().message;
+        $alertBar.classList.add('show');
+      } else {
+        $alertBar.classList.remove('show');
+      }
+    }, e => console.warn('Alert listener:', e));
+  }
 
-        // ─────────────────────────────────────────────
-        // 🔥 GLOBAL STATE
-        // ─────────────────────────────────────────────
-        let allBuses = [...SEED]; // Start with seed; Firestore will augment
-        let firestoreBuses = []; // Buses loaded from Firestore
-        let liveDataMap = {}; // { busId: { status, location, delay, crowd } }
-        let commentsMap = {}; // { busId: [{ user, text, timestamp }] }
-        let favoritesSet = new Set(); // Set of bus IDs
-        let currentUser = null;
-        let isAdmin = false;
-        const ADMIN_EMAIL = 'zevbuildstudio@gmail.com';
-        let activeAlert = null;
-        let showFavoritesOnly = false;
-        let firestoreReady = false;
+  document.getElementById('closeAlertBtn').addEventListener('click', () => $alertBar.classList.remove('show'));
 
-        // ─────────────────────────────────────────────
-        // 🔥 DOM REFS
-        // ─────────────────────────────────────────────
-        const $busList = document.getElementById('busList');
-        const $noResults = document.getElementById('noResults');
-        const $searchInput = document.getElementById('searchInput');
-        const $filterType = document.getElementById('filterType');
-        const $filterFrom = document.getElementById('filterFrom');
-        const $filterTo = document.getElementById('filterTo');
-        const $showFavsBtn = document.getElementById('showFavsBtn');
-        const $clearFiltersBtn = document.getElementById('clearFiltersBtn');
-        const $resultCount = document.getElementById('resultCount');
-        const $googleLoginBtn = document.getElementById('googleLoginBtn');
-        const $logoutBtn = document.getElementById('logoutBtn');
-        const $userInfo = document.getElementById('userInfo');
-        const $adminPanelBtn = document.getElementById('adminPanelBtn');
-        const $adminModalOverlay = document.getElementById('adminModalOverlay');
-        const $adminCloseBtn = document.getElementById('adminCloseBtn');
-        const $alertBanner = document.getElementById('alertBanner');
-        const $alertText = document.getElementById('alertText');
-        const $closeAlertBtn = document.getElementById('closeAlertBtn');
+  // ════════════════════════════════════════
+  // 🔥 AUTH
+  // ════════════════════════════════════════
+  $loginBtn.addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(e => showToast('Login Failed', e.message, '❌'));
+  });
 
-        // ─────────────────────────────────────────────
-        // 🔥 POPULATE FILTER DROPDOWNS FROM SEED
-        // ─────────────────────────────────────────────
-        function populateFilterDropdowns() {
-            const fromSet = new Set();
-            const toSet = new Set();
-            allBuses.forEach(b => {
-                if (b.from) fromSet.add(b.from);
-                if (b.to) toSet.add(b.to);
-            });
-            const fromSorted = [...fromSet].sort();
-            const toSorted = [...toSet].sort();
+  $logoutBtn.addEventListener('click', () => auth.signOut());
 
-            $filterFrom.innerHTML = '<option value="all">All Origins</option>';
-            $filterTo.innerHTML = '<option value="all">All Destinations</option>';
-            fromSorted.forEach(f => {
-                const opt = document.createElement('option');
-                opt.value = f;
-                opt.textContent = f;
-                $filterFrom.appendChild(opt);
-            });
-            toSorted.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t;
-                opt.textContent = t;
-                $filterTo.appendChild(opt);
-            });
-        }
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    isAdmin     = !!(user && user.email === ADMIN_EMAIL);
 
-        // ─────────────────────────────────────────────
-        // 🔥 RENDER BUS LIST (preserved filtering logic)
-        // ─────────────────────────────────────────────
-        function renderBusList() {
-            const searchTerm = $searchInput.value.toLowerCase().trim();
-            const typeFilter = $filterType.value;
-            const fromFilter = $filterFrom.value;
-            const toFilter = $filterTo.value;
+    if (user) {
+      $loginBtn.classList.add('hidden');
+      $logoutBtn.classList.remove('hidden');
+      $userChip.classList.remove('hidden');
+      $userChip.innerHTML = `
+        <img src="${user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||'User')}&background=3d8ef8&color=fff`}" alt="avatar"/>
+        <span class="uname">${user.displayName || user.email}</span>
+        ${isAdmin ? '<span style="color:var(--purple);font-size:0.65rem;">Admin</span>' : ''}`;
+      if (isAdmin) $adminBtn.classList.remove('hidden');
+      else         $adminBtn.classList.add('hidden');
+      if (firestoreReady) loadFavorites();
+    } else {
+      $loginBtn.classList.remove('hidden');
+      $logoutBtn.classList.add('hidden');
+      $userChip.classList.add('hidden');
+      $adminBtn.classList.add('hidden');
+      favoritesSet.clear();
+      renderAll();
+    }
+  });
 
-            let filtered = allBuses.filter(b => {
-                // Type filter
-                if (typeFilter !== 'all' && b.type !== typeFilter) return false;
-                // From filter
-                if (fromFilter !== 'all' && b.from !== fromFilter) return false;
-                // To filter
-                if (toFilter !== 'all' && b.to !== toFilter) return false;
-                // Search
-                if (searchTerm) {
-                    const haystack = `${b.busNo} ${b.from} ${b.to} ${b.notes} ${b.type} ${b.time}`.toLowerCase();
-                    if (!haystack.includes(searchTerm)) return false;
-                }
-                // Favorites filter
-                if (showFavoritesOnly && !favoritesSet.has(b.id)) return false;
-                return true;
-            });
+  // ════════════════════════════════════════
+  // ⚙️ ADMIN PANEL
+  // ════════════════════════════════════════
+  $adminBtn.addEventListener('click', () => {
+    if (!isAdmin) return;
+    document.getElementById('adminModal').classList.remove('hidden');
+    populateAdminSelects();
+  });
+  document.getElementById('adminCloseBtn').addEventListener('click', () => document.getElementById('adminModal').classList.add('hidden'));
+  document.getElementById('adminModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('adminModal')) document.getElementById('adminModal').classList.add('hidden');
+  });
 
-            // Sort by time
-            filtered.sort((a, b) => {
-                const timeA = a.time.replace(':', '');
-                const timeB = b.time.replace(':', '');
-                return timeA.localeCompare(timeB);
-            });
+  document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`atab-${btn.dataset.atab}`).classList.add('active');
+      populateAdminSelects();
+    });
+  });
 
-            $resultCount.textContent = `${filtered.length} bus${filtered.length !== 1 ? 'es' : ''}`;
+  function populateAdminSelects() {
+    const sorted = [...allBuses].sort((a,b) => timeToMins(a.time) - timeToMins(b.time));
+    const opts   = sorted.map(b => `<option value="${b.id}">${b.busNo} | ${b.from}→${b.to} | ${fmt12(b.time)}</option>`).join('');
+    const sel1 = document.getElementById('admEditSelect');
+    const sel2 = document.getElementById('admLiveSelect');
+    if (sel1) sel1.innerHTML = '<option value="">-- Choose a bus --</option>' + opts;
+    if (sel2) sel2.innerHTML = '<option value="">-- Choose a bus --</option>' + opts;
+  }
 
-            if (filtered.length === 0) {
-                $busList.innerHTML = '';
-                $noResults.classList.remove('hidden');
-                return;
-            }
-            $noResults.classList.add('hidden');
+  document.getElementById('admEditSelect').addEventListener('change', function() {
+    const bus = allBuses.find(b => b.id === this.value);
+    if (!bus) return;
+    document.getElementById('admEditBusNo').value = bus.busNo;
+    document.getElementById('admEditType').value   = bus.type;
+    document.getElementById('admEditFrom').value   = bus.from;
+    document.getElementById('admEditTo').value     = bus.to;
+    document.getElementById('admEditTime').value   = bus.time;
+    document.getElementById('admEditNotes').value  = bus.notes || '';
+  });
+  document.getElementById('admLiveSelect').addEventListener('change', function() {
+    const live = liveDataMap[this.value];
+    if (!live) return;
+    document.getElementById('admLiveStatus').value   = live.status || 'on-time';
+    document.getElementById('admLiveLocation').value = live.location || '';
+    document.getElementById('admLiveDelay').value    = live.delay || 0;
+    document.getElementById('admLiveCrowd').value    = live.crowd || 'low';
+  });
 
-            $busList.innerHTML = filtered.map(b => {
-                const live = liveDataMap[b.id] || {};
-                const status = live.status || 'on-time';
-                const location = live.location || '';
-                const delay = live.delay || 0;
-                const crowd = live.crowd || 'low';
-                const verifyCount = (b.verified && b.verified.length) ? b.verified.length : 0;
-                const isFaved = favoritesSet.has(b.id);
-                const comments = commentsMap[b.id] || [];
-                const typeBadgeClass = b.type === 'ktc' ? 'badge-ktc' : b.type === 'private' ?
-                    'badge-private' : 'badge-general';
+  document.getElementById('admSaveAdd').addEventListener('click', () => {
+    if (!isAdmin) return;
+    const busNo = document.getElementById('admAddBusNo').value.trim();
+    const type  = document.getElementById('admAddType').value;
+    const from  = document.getElementById('admAddFrom').value.trim();
+    const to    = document.getElementById('admAddTo').value.trim();
+    const time  = document.getElementById('admAddTime').value;
+    const notes = document.getElementById('admAddNotes').value.trim();
+    if (!busNo || !from || !to || !time) { alert('Fill all required fields.'); return; }
+    db.collection('bus_timings').doc('fb_' + Date.now()).set({
+      busNo, type, from, to, time, notes, addedBy:'admin',
+      verified:[], liveStatus:'on-time', liveLocation:'',
+      delay:0, crowd:'low', crowdReportCount:0,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      showToast('Bus Added!', `Bus ${busNo} has been added.`, '✅');
+      ['admAddBusNo','admAddFrom','admAddTo','admAddNotes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('admAddTime').value = '';
+    }).catch(e => alert(e.message));
+  });
 
-                let statusDotClass = 'on-time';
-                let statusLabel = 'On Time';
-                if (status === 'delayed') { statusDotClass = 'delayed';
-                    statusLabel = `Delayed ${delay}min`; } else if (status === 'early') { statusDotClass = 'early';
-                    statusLabel = 'Early'; }
+  document.getElementById('admSaveEdit').addEventListener('click', () => {
+    if (!isAdmin) return;
+    const id = document.getElementById('admEditSelect').value;
+    if (!id) { alert('Select a bus first.'); return; }
+    db.collection('bus_timings').doc(id).update({
+      busNo: document.getElementById('admEditBusNo').value.trim(),
+      type:  document.getElementById('admEditType').value,
+      from:  document.getElementById('admEditFrom').value.trim(),
+      to:    document.getElementById('admEditTo').value.trim(),
+      time:  document.getElementById('admEditTime').value,
+      notes: document.getElementById('admEditNotes').value.trim(),
+    }).then(() => showToast('Updated!', 'Bus has been updated.', '✅'))
+      .catch(e => alert(e.message));
+  });
 
-                let crowdClass = 'crowd-low';
-                let crowdLabel = 'Low';
-                if (crowd === 'medium') { crowdClass = 'crowd-medium';
-                    crowdLabel = 'Medium'; } else if (crowd === 'high') { crowdClass = 'crowd-high';
-                    crowdLabel = 'High'; }
+  document.getElementById('admDeleteBus').addEventListener('click', () => {
+    if (!isAdmin) return;
+    const id = document.getElementById('admEditSelect').value;
+    if (!id || !confirm('Delete this bus permanently?')) return;
+    db.collection('bus_timings').doc(id).delete()
+      .then(() => showToast('Deleted!', 'Bus has been removed.', '🗑'))
+      .catch(e => alert(e.message));
+  });
 
-                return /*html*/ `
-                <div class="bus-card" data-id="${b.id}">
-                  <div class="top-row">
-                    <div>
-                      <span class="bus-no">🚌 ${b.busNo}<span class="badge-type ${typeBadgeClass}">${b.type}</span></span>
-                      <div class="route"><strong>${b.from}</strong> → <strong>${b.to}</strong></div>
-                    </div>
-                    <div class="time">🕐 ${b.time}</div>
-                  </div>
-                  ${b.notes ? `<div class="notes">📝 ${b.notes}</div>` : ''}
-                  <div class="meta-row">
-                    <span><span class="live-dot ${statusDotClass}"></span>${statusLabel}</span>
-                    ${location ? `<span>📍 ${location}</span>` : ''}
-                    <span class="crowd-badge ${crowdClass}">👥 ${crowdLabel}</span>
-                    ${verifyCount > 0 ? `<span class="verify-count">✅ ${verifyCount} verified</span>` : ''}
-                  </div>
-                  <div class="card-actions">
-                    <!-- 🔥 FAVORITE BUTTON -->
-                    <button class="fav-btn ${isFaved ? 'faved' : 'not-faved'}" data-id="${b.id}" data-action="fav" title="Favorite">
-                      ${isFaved ? '⭐' : '☆'}
-                    </button>
-                    <!-- 🔥 VERIFY BUTTON (logged-in only) -->
-                    ${currentUser ? `<button class="btn btn-xs btn-green" data-id="${b.id}" data-action="verify" title="Verify this bus">✅ Verify</button>` : ''}
-                    <!-- 🔥 CROWD REPORT (logged-in only) -->
-                    ${currentUser ? `<button class="btn btn-xs" data-id="${b.id}" data-action="crowd" title="Report crowd level">👥 Crowd</button>` : ''}
-                    <!-- 🔥 COMMENT TOGGLE -->
-                    <button class="btn btn-xs" data-id="${b.id}" data-action="toggle-comments" title="Comments">
-                      💬 ${comments.length > 0 ? comments.length : ''}
-                    </button>
-                  </div>
-                  <!-- 🔥 COMMENT SECTION -->
-                  <div class="comment-section hidden" id="comments-${b.id}">
-                    ${comments.map(c => `<div class="comment"><strong>${c.user}</strong>: ${c.text} <span style="font-size:0.65rem;color:#64748b;">${c.timestamp ? new Date(c.timestamp).toLocaleString() : ''}</span></div>`).join('')}
-                    ${currentUser ? `
-                    <div class="comment-input-row">
-                      <input type="text" placeholder="Add a comment..." data-id="${b.id}" data-action="add-comment" autocomplete="off">
-                      <button class="btn btn-xs btn-accent" data-id="${b.id}" data-action="submit-comment">Send</button>
-                    </div>` : '<div style="font-size:0.7rem;color:var(--text2);">Sign in to comment.</div>'}
-                  </div>
-                </div>`;
-            }).join('');
+  document.getElementById('admSetAlert').addEventListener('click', () => {
+    if (!isAdmin) return;
+    const msg = document.getElementById('admAlertMsg').value.trim();
+    if (!msg) { alert('Enter an alert message.'); return; }
+    db.collection('app_settings').doc('alert').set({
+      message: msg, active: true,
+      setBy: currentUser.email,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => { showToast('Alert Set!', 'Alert is now live.', '🚨'); document.getElementById('admAlertMsg').value = ''; })
+      .catch(e => alert(e.message));
+  });
 
-            // Attach event listeners to card buttons
-            attachCardListeners();
-        }
+  document.getElementById('admClearAlert').addEventListener('click', () => {
+    if (!isAdmin) return;
+    db.collection('app_settings').doc('alert').update({ active: false })
+      .then(() => showToast('Alert Cleared!', 'Alert has been removed.', '✅'))
+      .catch(e => alert(e.message));
+  });
 
-        // ─────────────────────────────────────────────
-        // 🔥 ATTACH CARD EVENT LISTENERS
-        // ─────────────────────────────────────────────
-        function attachCardListeners() {
-            document.querySelectorAll('[data-action="fav"]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = btn.dataset.id;
-                    toggleFavorite(id);
-                });
-            });
-            document.querySelectorAll('[data-action="verify"]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = btn.dataset.id;
-                    verifyBus(id);
-                });
-            });
-            document.querySelectorAll('[data-action="crowd"]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = btn.dataset.id;
-                    promptCrowdReport(id);
-                });
-            });
-            document.querySelectorAll('[data-action="toggle-comments"]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = btn.dataset.id;
-                    const section = document.getElementById(`comments-${id}`);
-                    if (section) section.classList.toggle('hidden');
-                });
-            });
-            document.querySelectorAll('[data-action="submit-comment"]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = btn.dataset.id;
-                    const input = document.querySelector(`input[data-id="${id}"][data-action="add-comment"]`);
-                    if (input && input.value.trim()) {
-                        addComment(id, input.value.trim());
-                        input.value = '';
-                    }
-                });
-            });
-            // Allow Enter key on comment inputs
-            document.querySelectorAll('[data-action="add-comment"]').forEach(input => {
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        e.stopPropagation();
-                        const id = input.dataset.id;
-                        if (input.value.trim()) {
-                            addComment(id, input.value.trim());
-                            input.value = '';
-                        }
-                    }
-                });
-            });
-        }
+  document.getElementById('admSaveLive').addEventListener('click', () => {
+    if (!isAdmin) return;
+    const id = document.getElementById('admLiveSelect').value;
+    if (!id) { alert('Select a bus first.'); return; }
+    db.collection('bus_timings').doc(id).update({
+      liveStatus:   document.getElementById('admLiveStatus').value,
+      liveLocation: document.getElementById('admLiveLocation').value.trim(),
+      delay:        parseInt(document.getElementById('admLiveDelay').value) || 0,
+      crowd:        document.getElementById('admLiveCrowd').value,
+    }).then(() => showToast('Live Updated!', 'Live data saved.', '📍'))
+      .catch(e => alert(e.message));
+  });
 
-        // ─────────────────────────────────────────────
-        // 🔥 FAVORITES LOGIC
-        // ─────────────────────────────────────────────
-        function toggleFavorite(id) {
-            if (!currentUser) {
-                alert('Please sign in to save favorites.');
-                return;
-            }
-            if (favoritesSet.has(id)) {
-                favoritesSet.delete(id);
-            } else {
-                favoritesSet.add(id);
-            }
-            syncFavoritesToFirestore();
-            renderBusList();
-        }
+  ['admCancelAdd','admCancelEdit','admCancelLive'].forEach(id => {
+    document.getElementById(id).addEventListener('click', () => document.getElementById('adminModal').classList.add('hidden'));
+  });
 
-        function syncFavoritesToFirestore() {
-            if (!currentUser || !firestoreReady) return;
-            const userRef = db.collection('users').doc(currentUser.uid);
-            userRef.set({
-                favorites: [...favoritesSet],
-                email: currentUser.email,
-                displayName: currentUser.displayName,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true }).catch(err => console.warn('Fav sync error:', err));
-        }
+  // ════════════════════════════════════════
+  // 🔥 INIT
+  // ════════════════════════════════════════
+  async function init() {
+    populateDropdowns();
+    renderAll();                    // Immediate render from SEED
+    scheduleAllReminders();         // Restore saved reminders
+    requestNotifPermission();       // Ask permission early
 
-        function loadFavoritesFromFirestore() {
-            if (!currentUser) { favoritesSet.clear();
-                renderBusList(); return; }
-            const userRef = db.collection('users').doc(currentUser.uid);
-            userRef.get().then(doc => {
-                if (doc.exists && doc.data().favorites) {
-                    favoritesSet = new Set(doc.data().favorites);
-                } else {
-                    favoritesSet.clear();
-                }
-                renderBusList();
-            }).catch(() => {
-                favoritesSet.clear();
-                renderBusList();
-            });
-        }
+    await syncSeedToFirestore();    // Upload SEED if Firestore is empty
+    setupFirestoreListener();       // Real-time listener
+    setupAlertListener();
 
-        // ─────────────────────────────────────────────
-        // 🔥 VERIFY BUS
-        // ─────────────────────────────────────────────
-        function verifyBus(id) {
-            if (!currentUser) return;
-            const busRef = db.collection('bus_timings').doc(id);
-            db.runTransaction(async (transaction) => {
-                const doc = await transaction.get(busRef);
-                if (!doc.exists) return;
-                const data = doc.data();
-                const verified = data.verified || [];
-                const uid = currentUser.uid;
-                if (!verified.includes(uid)) {
-                    verified.push(uid);
-                }
-                transaction.update(busRef, { verified: verified });
-            }).then(() => {
-                // Local update will happen via snapshot
-            }).catch(err => console.warn('Verify error:', err));
-        }
+    // Refresh every minute for countdown updates
+    setInterval(() => {
+      updateHero();
+      if (activeTab === 'schedule')   renderSchedule();
+      if (activeTab === 'favorites')  renderFavorites();
+    }, 60 * 1000);
 
-        // ─────────────────────────────────────────────
-        // 🔥 CROWD REPORT
-        // ─────────────────────────────────────────────
-        function promptCrowdReport(id) {
-            if (!currentUser) return;
-            const level = prompt('Report crowd level:\nType: low, medium, or high', 'medium');
-            if (!level || !['low', 'medium', 'high'].includes(level.toLowerCase())) return;
-            const crowdRef = db.collection('bus_timings').doc(id).collection('crowd_reports').doc(currentUser
-            .uid);
-            crowdRef.set({
-                level: level.toLowerCase(),
-                reportedBy: currentUser.displayName || currentUser.email,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                // Aggregate crowd data
-                aggregateCrowdData(id);
-            }).catch(err => console.warn('Crowd report error:', err));
-        }
+    console.log('🚌 CMSRBus initialized | SEED:', SEED.length, 'routes | Admin:', ADMIN_EMAIL);
+  }
 
-        function aggregateCrowdData(id) {
-            db.collection('bus_timings').doc(id).collection('crowd_reports').get().then(snapshot => {
-                const reports = [];
-                snapshot.forEach(d => reports.push(d.data().level));
-                let crowd = 'low';
-                if (reports.length > 0) {
-                    const highCount = reports.filter(r => r === 'high').length;
-                    const medCount = reports.filter(r => r === 'medium').length;
-                    if (highCount > reports.length * 0.4) crowd = 'high';
-                    else if (medCount + highCount > reports.length * 0.5) crowd = 'medium';
-                }
-                db.collection('bus_timings').doc(id).update({ crowd: crowd, crowdReportCount: reports.length })
-                    .catch(err => console.warn('Crowd update error:', err));
-            }).catch(err => console.warn('Crowd aggregate error:', err));
-        }
-
-        // ─────────────────────────────────────────────
-        // 🔥 COMMENTS
-        // ─────────────────────────────────────────────
-        function addComment(id, text) {
-            if (!currentUser) return;
-            const commentRef = db.collection('bus_timings').doc(id).collection('comments').doc();
-            commentRef.set({
-                user: currentUser.displayName || currentUser.email,
-                text: text,
-                uid: currentUser.uid,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).catch(err => console.warn('Comment error:', err));
-        }
-
-        function loadCommentsForBus(id) {
-            db.collection('bus_timings').doc(id).collection('comments').orderBy('timestamp', 'asc').onSnapshot(
-                snapshot => {
-                    const comments = [];
-                    snapshot.forEach(d => comments.push(d.data()));
-                    commentsMap[id] = comments;
-                    renderBusList();
-                    // Re-open comment section if it was open
-                    const section = document.getElementById(`comments-${id}`);
-                    if (section && !section.classList.contains('hidden')) {
-                        section.classList.remove('hidden');
-                    }
-                }, err => console.warn('Comments listener error:', err));
-        }
-
-        // ─────────────────────────────────────────────
-        // 🔥 FIREBASE: SYNC SEED → FIRESTORE
-        // ─────────────────────────────────────────────
-        async function syncSeedToFirestore() {
-            try {
-                const snapshot = await db.collection('bus_timings').limit(1).get();
-                if (snapshot.empty) {
-                    console.log('🔥 Firestore is empty. Uploading SEED data...');
-                    const batch = db.batch();
-                    SEED.forEach(bus => {
-                        const ref = db.collection('bus_timings').doc(bus.id);
-                        batch.set(ref, {
-                            busNo: bus.busNo,
-                            type: bus.type,
-                            from: bus.from,
-                            to: bus.to,
-                            time: bus.time,
-                            notes: bus.notes,
-                            addedBy: bus.addedBy,
-                            verified: bus.verified || [],
-                            // 🔥 Real-time fields initialized
-                            liveStatus: 'on-time',
-                            liveLocation: '',
-                            delay: 0,
-                            crowd: 'low',
-                            crowdReportCount: 0,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    });
-                    await batch.commit();
-                    console.log('✅ SEED data uploaded to Firestore.');
-                } else {
-                    console.log('📦 Firestore already has data. Loading from Firestore...');
-                }
-            } catch (err) {
-                console.warn('Firestore sync check error (may be offline):', err.message);
-            }
-        }
-
-        // ─────────────────────────────────────────────
-        // 🔥 FIREBASE: REAL-TIME SNAPSHOT LISTENER
-        // ─────────────────────────────────────────────
-        function setupFirestoreListener() {
-            db.collection('bus_timings').onSnapshot(snapshot => {
-                const firestoreData = [];
-                snapshot.forEach(doc => {
-                    const d = doc.data();
-                    firestoreData.push({
-                        id: doc.id,
-                        busNo: d.busNo,
-                        type: d.type,
-                        from: d.from,
-                        to: d.to,
-                        time: d.time,
-                        notes: d.notes || '',
-                        addedBy: d.addedBy || 'raju',
-                        verified: d.verified || [],
-                        // Live fields
-                        liveStatus: d.liveStatus || 'on-time',
-                        liveLocation: d.liveLocation || '',
-                        delay: d.delay || 0,
-                        crowd: d.crowd || 'low',
-                        crowdReportCount: d.crowdReportCount || 0,
-                    });
-                });
-
-                // Merge: Firestore data takes precedence, but SEED entries not in Firestore remain
-                const firestoreIds = new Set(firestoreData.map(b => b.id));
-                const seedOnly = SEED.filter(b => !firestoreIds.has(b.id));
-                allBuses = [...firestoreData, ...seedOnly];
-
-                // Update liveDataMap
-                liveDataMap = {};
-                allBuses.forEach(b => {
-                    liveDataMap[b.id] = {
-                        status: b.liveStatus || 'on-time',
-                        location: b.liveLocation || '',
-                        delay: b.delay || 0,
-                        crowd: b.crowd || 'low',
-                    };
-                });
-
-                firestoreReady = true;
-                populateFilterDropdowns();
-                renderBusList();
-                // Load comments for all firestore buses
-                firestoreData.forEach(b => loadCommentsForBus(b.id));
-            }, err => {
-                console.warn('Firestore listener error (using seed data):', err.message);
-                // Fallback: use seed data
-                allBuses = [...SEED];
-                liveDataMap = {};
-                allBuses.forEach(b => {
-                    liveDataMap[b.id] = { status: 'on-time', location: '', delay: 0, crowd: 'low' };
-                });
-                firestoreReady = true;
-                populateFilterDropdowns();
-                renderBusList();
-            });
-        }
-
-        // ─────────────────────────────────────────────
-        // 🔥 ALERT SYSTEM (Firestore real-time)
-        // ─────────────────────────────────────────────
-        function setupAlertListener() {
-            db.collection('app_settings').doc('alert').onSnapshot(doc => {
-                if (doc.exists && doc.data().message && doc.data().active) {
-                    activeAlert = doc.data().message;
-                    $alertText.textContent = '🚨 ' + activeAlert;
-                    $alertBanner.classList.add('show');
-                } else {
-                    activeAlert = null;
-                    $alertBanner.classList.remove('show');
-                }
-            }, err => console.warn('Alert listener error:', err));
-        }
-
-        $closeAlertBtn.addEventListener('click', () => {
-            $alertBanner.classList.remove('show');
-        });
-
-        // ─────────────────────────────────────────────
-        // 🔥 AUTHENTICATION
-        // ─────────────────────────────────────────────
-        function updateUIForAuth(user) {
-            currentUser = user;
-            isAdmin = user && user.email === ADMIN_EMAIL;
-            if (user) {
-                $googleLoginBtn.classList.add('hidden');
-                $logoutBtn.classList.remove('hidden');
-                $userInfo.classList.remove('hidden');
-                $userInfo.innerHTML = `
-                  <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || 'User') + '&background=3b82f6&color=fff'}" alt="avatar">
-                  <span class="user-name">${user.displayName || user.email}</span>
-                  ${isAdmin ? '<span style="color:#f59e0b;font-size:0.7rem;">(Admin)</span>' : ''}
-                `;
-                if (isAdmin) {
-                    $adminPanelBtn.classList.remove('hidden');
-                } else {
-                    $adminPanelBtn.classList.add('hidden');
-                }
-                loadFavoritesFromFirestore();
-            } else {
-                $googleLoginBtn.classList.remove('hidden');
-                $logoutBtn.classList.add('hidden');
-                $userInfo.classList.add('hidden');
-                $adminPanelBtn.classList.add('hidden');
-                favoritesSet.clear();
-                renderBusList();
-            }
-        }
-
-        $googleLoginBtn.addEventListener('click', () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(err => {
-                console.warn('Login error:', err.message);
-                alert('Login failed: ' + err.message);
-            });
-        });
-
-        $logoutBtn.addEventListener('click', () => {
-            auth.signOut().catch(err => console.warn('Logout error:', err));
-        });
-
-        auth.onAuthStateChanged(user => {
-            updateUIForAuth(user);
-            if (user && firestoreReady) {
-                loadFavoritesFromFirestore();
-            }
-        });
-
-        // ─────────────────────────────────────────────
-        // 🔥 ADMIN PANEL LOGIC
-        // ─────────────────────────────────────────────
-        $adminPanelBtn.addEventListener('click', () => {
-            if (!isAdmin) return;
-            $adminModalOverlay.classList.remove('hidden');
-            populateAdminSelects();
-            // Reset tabs
-            document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
-            document.getElementById('tab-add').classList.remove('hidden');
-            document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('btn-accent'));
-            document.querySelector('[data-tab="add"]').classList.add('btn-accent');
-        });
-
-        $adminCloseBtn.addEventListener('click', () => {
-            $adminModalOverlay.classList.add('hidden');
-        });
-        $adminModalOverlay.addEventListener('click', (e) => {
-            if (e.target === $adminModalOverlay) $adminModalOverlay.classList.add('hidden');
-        });
-
-        // Admin tab switching
-        document.querySelectorAll('.admin-tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
-                document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove(
-                    'btn-accent'));
-                btn.classList.add('btn-accent');
-                const tabId = 'tab-' + btn.dataset.tab;
-                document.getElementById(tabId).classList.remove('hidden');
-                if (btn.dataset.tab === 'edit' || btn.dataset.tab === 'live') populateAdminSelects();
-            });
-        });
-
-        function populateAdminSelects() {
-            const editSelect = document.getElementById('admEditSelect');
-            const liveSelect = document.getElementById('admLiveSelect');
-            const sorted = [...allBuses].sort((a, b) => a.time.localeCompare(b.time));
-            const options = sorted.map(b =>
-                `<option value="${b.id}">${b.busNo} | ${b.from}→${b.to} | ${b.time}</option>`).join('');
-
-            if (editSelect) editSelect.innerHTML = '<option value="">-- Choose --</option>' + options;
-            if (liveSelect) liveSelect.innerHTML = '<option value="">-- Choose --</option>' + options;
-        }
-
-        // Edit select → fill form
-        document.getElementById('admEditSelect').addEventListener('change', function() {
-            const id = this.value;
-            const bus = allBuses.find(b => b.id === id);
-            if (bus) {
-                document.getElementById('admEditBusNo').value = bus.busNo;
-                document.getElementById('admEditType').value = bus.type;
-                document.getElementById('admEditFrom').value = bus.from;
-                document.getElementById('admEditTo').value = bus.to;
-                document.getElementById('admEditTime').value = bus.time;
-                document.getElementById('admEditNotes').value = bus.notes || '';
-            }
-        });
-        document.getElementById('admLiveSelect').addEventListener('change', function() {
-            const id = this.value;
-            const live = liveDataMap[id];
-            if (live) {
-                document.getElementById('admLiveStatus').value = live.status || 'on-time';
-                document.getElementById('admLiveLocation').value = live.location || '';
-                document.getElementById('admLiveDelay').value = live.delay || 0;
-                document.getElementById('admLiveCrowd').value = live.crowd || 'low';
-            }
-        });
-
-        // Add Bus
-        document.getElementById('admSaveAdd').addEventListener('click', () => {
-            if (!isAdmin) return;
-            const busNo = document.getElementById('admAddBusNo').value.trim();
-            const type = document.getElementById('admAddType').value;
-            const from = document.getElementById('admAddFrom').value.trim();
-            const to = document.getElementById('admAddTo').value.trim();
-            const time = document.getElementById('admAddTime').value.trim();
-            const notes = document.getElementById('admAddNotes').value.trim();
-            if (!busNo || !from || !to || !time) { alert('Please fill all required fields.');
-                return; }
-            const newId = 'fb_' + Date.now();
-            db.collection('bus_timings').doc(newId).set({
-                busNo,
-                type,
-                from,
-                to,
-                time,
-                notes,
-                addedBy: 'admin',
-                verified: [],
-                liveStatus: 'on-time',
-                liveLocation: '',
-                delay: 0,
-                crowd: 'low',
-                crowdReportCount: 0,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                alert('Bus added!');
-                document.getElementById('admAddBusNo').value = '';
-                document.getElementById('admAddFrom').value = '';
-                document.getElementById('admAddTo').value = '';
-                document.getElementById('admAddTime').value = '';
-                document.getElementById('admAddNotes').value = '';
-            }).catch(err => alert('Error: ' + err.message));
-        });
-
-        // Update Bus
-        document.getElementById('admSaveEdit').addEventListener('click', () => {
-            if (!isAdmin) return;
-            const id = document.getElementById('admEditSelect').value;
-            if (!id) { alert('Select a bus first.');
-                return; }
-            const data = {
-                busNo: document.getElementById('admEditBusNo').value.trim(),
-                type: document.getElementById('admEditType').value,
-                from: document.getElementById('admEditFrom').value.trim(),
-                to: document.getElementById('admEditTo').value.trim(),
-                time: document.getElementById('admEditTime').value.trim(),
-                notes: document.getElementById('admEditNotes').value.trim(),
-            };
-            db.collection('bus_timings').doc(id).update(data).then(() => {
-                alert('Bus updated!');
-            }).catch(err => alert('Error: ' + err.message));
-        });
-
-        // Delete Bus
-        document.getElementById('admDeleteBus').addEventListener('click', () => {
-            if (!isAdmin) return;
-            const id = document.getElementById('admEditSelect').value;
-            if (!id) { alert('Select a bus first.');
-                return; }
-            if (!confirm('Delete this bus permanently?')) return;
-            db.collection('bus_timings').doc(id).delete().then(() => {
-                alert('Bus deleted.');
-                document.getElementById('admEditSelect').value = '';
-                populateAdminSelects();
-            }).catch(err => alert('Error: ' + err.message));
-        });
-
-        // Set Alert
-        document.getElementById('admSetAlert').addEventListener('click', () => {
-            if (!isAdmin) return;
-            const msg = document.getElementById('admAlertMsg').value.trim();
-            if (!msg) { alert('Enter an alert message.');
-                return; }
-            db.collection('app_settings').doc('alert').set({
-                message: msg,
-                active: true,
-                setBy: currentUser.email,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                alert('Alert set!');
-                document.getElementById('admAlertMsg').value = '';
-            }).catch(err => alert('Error: ' + err.message));
-        });
-
-        // Clear Alert
-        document.getElementById('admClearAlert').addEventListener('click', () => {
-            if (!isAdmin) return;
-            db.collection('app_settings').doc('alert').update({ active: false }).then(() => {
-                alert('Alert cleared.');
-            }).catch(err => alert('Error: ' + err.message));
-        });
-
-        // Save Live Update
-        document.getElementById('admSaveLive').addEventListener('click', () => {
-            if (!isAdmin) return;
-            const id = document.getElementById('admLiveSelect').value;
-            if (!id) { alert('Select a bus first.');
-                return; }
-            const data = {
-                liveStatus: document.getElementById('admLiveStatus').value,
-                liveLocation: document.getElementById('admLiveLocation').value.trim(),
-                delay: parseInt(document.getElementById('admLiveDelay').value) || 0,
-                crowd: document.getElementById('admLiveCrowd').value,
-            };
-            db.collection('bus_timings').doc(id).update(data).then(() => {
-                alert('Live data updated!');
-            }).catch(err => alert('Error: ' + err.message));
-        });
-
-        // Cancel buttons
-        document.getElementById('admCancelAdd').addEventListener('click', () => $adminModalOverlay.classList.add(
-            'hidden'));
-        document.getElementById('admCancelEdit').addEventListener('click', () => $adminModalOverlay.classList.add(
-            'hidden'));
-        document.getElementById('admCancelLive').addEventListener('click', () => $adminModalOverlay.classList.add(
-            'hidden'));
-
-        // ─────────────────────────────────────────────
-        // 🔥 FILTER EVENT LISTENERS (preserved logic)
-        // ─────────────────────────────────────────────
-        $searchInput.addEventListener('input', renderBusList);
-        $filterType.addEventListener('change', renderBusList);
-        $filterFrom.addEventListener('change', renderBusList);
-        $filterTo.addEventListener('change', renderBusList);
-        $clearFiltersBtn.addEventListener('click', () => {
-            $searchInput.value = '';
-            $filterType.value = 'all';
-            $filterFrom.value = 'all';
-            $filterTo.value = 'all';
-            showFavoritesOnly = false;
-            $showFavsBtn.textContent = '⭐ Favorites';
-            renderBusList();
-        });
-        $showFavsBtn.addEventListener('click', () => {
-            showFavoritesOnly = !showFavoritesOnly;
-            $showFavsBtn.textContent = showFavoritesOnly ? '⭐ Showing Favorites' : '⭐ Favorites';
-            renderBusList();
-        });
-
-        // ─────────────────────────────────────────────
-        // 🔥 INITIALIZATION
-        // ─────────────────────────────────────────────
-        async function init() {
-            populateFilterDropdowns();
-            renderBusList(); // Render immediately with seed data
-            await syncSeedToFirestore();
-            setupFirestoreListener();
-            setupAlertListener();
-            console.log('🚌 GoaBus Tracker initialized. SEED data preserved. Firebase connected.');
-            console.log('👤 Admin:', ADMIN_EMAIL);
-            console.log('📦 SEED entries:', SEED.length);
-        }
-
-        init();
-    </script>
+  init();
+</script>
 </body>
 </html>
