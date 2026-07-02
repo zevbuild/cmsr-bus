@@ -1,0 +1,24 @@
+{
+  "name": "CMSR Bus — Goa Bus Reminder & Tracker",
+  "short_name": "CMSR Bus",
+  "description": "Real-time bus schedule tracker and reminder system for ACMSR College routes in Goa.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#080d1a",
+  "theme_color": "#3d8ef8",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%233d8ef8'/><text y='130' x='96' font-size='110' text-anchor='middle'>🚌</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%233d8ef8'/><text y='360' x='256' font-size='300' text-anchor='middle'>🚌</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

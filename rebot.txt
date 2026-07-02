@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://campusbus.pages.dev/sitemap.xml

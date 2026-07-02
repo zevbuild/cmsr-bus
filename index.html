@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CMSR Bus — Goa Bus Reminder & Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>CMSR Bus — Goa Bus Reminder &amp; Tracker</title>
   <meta name="description" content="Real-time bus schedule tracker and reminder system for ACMSR College routes in Goa. Never miss your bus again." />
+  <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
@@ -14,9 +15,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
   <style>
-    /* ══════════════════════════════════════
-       DESIGN TOKENS
-    ══════════════════════════════════════ */
     :root {
       --bg:         #080d1a;
       --bg2:        #0d1525;
@@ -46,6 +44,33 @@
       --shadowSm:   0 2px 12px rgba(0,0,0,0.3);
     }
 
+    /* Light mode overrides (toggleable) */
+    body.light-mode {
+      --bg:         #f8fafc;
+      --bg2:        #e2e8f0;
+      --surface:    rgba(255,255,255,0.9);
+      --surface2:   rgba(0,0,0,0.05);
+      --surfaceS:   rgba(0,0,0,0.02);
+      --border:     rgba(0,0,0,0.08);
+      --border2:    rgba(0,0,0,0.15);
+      --text:       #0f172a;
+      --text2:      #475569;
+      --text3:      #94a3b8;
+      --accent:     #2563eb;
+      --accent2:    #1d4ed8;
+      --accentGlow: rgba(37,99,235,0.15);
+      --green:      #059669;
+      --greenDim:   rgba(5,150,105,0.1);
+      --red:        #dc2626;
+      --redDim:     rgba(220,38,38,0.1);
+      --yellow:     #ca8a04;
+      --yellowDim:  rgba(202,138,4,0.1);
+      --purple:     #7c3aed;
+      --purpleDim:  rgba(124,58,237,0.1);
+      --shadow:     0 4px 20px rgba(0,0,0,0.1);
+      --shadowSm:   0 1px 8px rgba(0,0,0,0.05);
+    }
+
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
     body {
@@ -55,9 +80,10 @@
       min-height: 100vh;
       line-height: 1.5;
       overflow-x: hidden;
+      transition: background 0.2s, color 0.2s;
     }
 
-    /* Background grid pattern */
+    /* Background grid */
     body::before {
       content: '';
       position: fixed;
@@ -70,7 +96,22 @@
       z-index: 0;
     }
 
-    /* ── HEADER ────────────────────────── */
+    /* Offline banner */
+    .offline-banner {
+      display: none;
+      background: var(--red);
+      color: white;
+      text-align: center;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 101;
+    }
+    body.offline .offline-banner { display: block; }
+
+    /* Header */
     .header {
       position: sticky;
       top: 0;
@@ -86,6 +127,7 @@
       justify-content: space-between;
       gap: 12px;
     }
+    body.light-mode .header { background: rgba(255,255,255,0.8); }
 
     .logo {
       display: flex;
@@ -97,9 +139,9 @@
       color: #fff;
       white-space: nowrap;
     }
+    body.light-mode .logo { color: var(--text); }
     .logo-icon {
-      width: 36px;
-      height: 36px;
+      width: 36px; height: 36px;
       background: linear-gradient(135deg, var(--accent), #7c3aed);
       border-radius: 10px;
       display: flex;
@@ -110,17 +152,11 @@
     }
     .logo span { color: var(--accent); }
 
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-    /* ── NEXT BUS HERO BANNER ─────────── */
+    /* Hero */
     .hero {
-      position: relative;
-      z-index: 1;
+      position: relative; z-index: 1;
       margin: 20px 20px 0;
       background: linear-gradient(135deg, rgba(61,142,248,0.15) 0%, rgba(124,58,237,0.15) 100%);
       border: 1px solid rgba(61,142,248,0.3);
@@ -129,528 +165,222 @@
       overflow: hidden;
     }
     .hero::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -10%;
-      width: 300px;
-      height: 300px;
+      content: ''; position: absolute; top: -50%; right: -10%;
+      width: 300px; height: 300px;
       background: radial-gradient(circle, rgba(61,142,248,0.12) 0%, transparent 70%);
       pointer-events: none;
     }
     .hero-inner {
       position: relative;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      flex-wrap: wrap;
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
     }
-    .hero-bus-icon {
-      font-size: 3rem;
-      line-height: 1;
-      animation: float 3s ease-in-out infinite;
-    }
+    .hero-bus-icon { font-size: 3rem; line-height: 1; animation: float 3s ease-in-out infinite; }
     @keyframes float {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-6px); }
     }
     .hero-text h2 {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--accent);
-      font-weight: 600;
-      margin-bottom: 4px;
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--accent); font-weight: 600; margin-bottom: 4px;
     }
-    .hero-text .next-bus-info {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: #fff;
-    }
-    .hero-text .next-bus-route {
-      font-size: 0.85rem;
-      color: var(--text2);
-      margin-top: 2px;
-    }
-    .hero-countdown {
-      margin-left: auto;
-      text-align: right;
-    }
+    .hero-text .next-bus-info { font-size: 1.3rem; font-weight: 700; color: #fff; }
+    body.light-mode .hero-text .next-bus-info { color: var(--text); }
+    .hero-text .next-bus-route { font-size: 0.85rem; color: var(--text2); margin-top: 2px; }
+    .hero-countdown { margin-left: auto; text-align: right; }
     .countdown-ring-wrap {
-      position: relative;
-      width: 90px;
-      height: 90px;
-      margin: 0 auto 4px;
+      position: relative; width: 90px; height: 90px; margin: 0 auto 4px;
     }
-    .countdown-ring-wrap svg {
-      transform: rotate(-90deg);
-    }
+    .countdown-ring-wrap svg { transform: rotate(-90deg); }
     .countdown-ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 6; }
     .countdown-ring-fg {
-      fill: none;
-      stroke: var(--accent);
-      stroke-width: 6;
-      stroke-linecap: round;
-      stroke-dasharray: 226;
-      stroke-dashoffset: 226;
-      transition: stroke-dashoffset 1s linear;
+      fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round;
+      stroke-dasharray: 226; stroke-dashoffset: 226; transition: stroke-dashoffset 1s linear;
     }
     .countdown-ring-fg.urgent { stroke: var(--red); }
     .countdown-ring-fg.soon   { stroke: var(--yellow); }
     .countdown-center {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    .countdown-mins {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: #fff;
-      line-height: 1;
-    }
-    .countdown-label {
-      font-size: 0.55rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text2);
-    }
-    .hero-no-bus {
-      font-size: 1rem;
-      color: var(--text2);
-      text-align: center;
-      padding: 10px 0;
-    }
+    .countdown-mins { font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1; }
+    .countdown-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
+    .hero-no-bus { font-size: 1rem; color: var(--text2); text-align: center; padding: 10px 0; }
 
-    /* ── ALERT BANNER ─────────────────── */
+    /* Alert bar */
     .alert-bar {
-      position: relative;
-      z-index: 1;
-      margin: 12px 20px 0;
+      position: relative; z-index: 1; margin: 12px 20px 0;
       background: linear-gradient(135deg, rgba(245,197,66,0.12), rgba(249,115,22,0.12));
       border: 1px solid rgba(245,197,66,0.3);
-      border-radius: var(--radius);
-      padding: 12px 16px;
-      display: none;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--yellow);
+      border-radius: var(--radius); padding: 12px 16px; display: none;
+      align-items: center; gap: 10px; font-size: 0.875rem; font-weight: 500; color: var(--yellow);
       animation: slideIn 0.3s ease;
     }
     .alert-bar.show { display: flex; }
     .alert-bar .alert-msg { flex: 1; }
     .alert-bar .close-alert {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text2);
-      font-size: 1.1rem;
-      line-height: 1;
-      padding: 2px;
-      transition: color 0.2s;
+      background: none; border: none; cursor: pointer; color: var(--text2); font-size: 1.1rem;
+      line-height: 1; padding: 2px;
     }
     .alert-bar .close-alert:hover { color: #fff; }
-
     @keyframes slideIn {
       from { opacity:0; transform: translateY(-8px); }
       to   { opacity:1; transform: translateY(0); }
     }
 
-    /* ── TABS NAV ─────────────────────── */
+    /* Tabs */
     .tabs-nav {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      gap: 4px;
-      padding: 16px 20px 0;
+      position: relative; z-index: 1;
+      display: flex; gap: 4px; padding: 16px 20px 0;
     }
     .tab-btn {
-      padding: 8px 16px;
-      border-radius: 10px 10px 0 0;
-      border: 1px solid transparent;
-      border-bottom: none;
-      background: none;
-      color: var(--text2);
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-      display: flex;
-      align-items: center;
-      gap: 5px;
+      padding: 8px 16px; border-radius: 10px 10px 0 0;
+      border: 1px solid transparent; border-bottom: none;
+      background: none; color: var(--text2); font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; gap: 5px;
     }
     .tab-btn:hover { color: var(--text); background: var(--surface); }
-    .tab-btn.active {
-      color: #fff;
-      background: rgba(61,142,248,0.12);
-      border-color: rgba(61,142,248,0.3);
-    }
+    .tab-btn.active { color: #fff; background: rgba(61,142,248,0.12); border-color: rgba(61,142,248,0.3); }
 
-    /* ── MAIN CONTENT ─────────────────── */
-    .main {
-      position: relative;
-      z-index: 1;
-      padding: 0 20px 80px;
-    }
-
+    /* Main */
+    .main { position: relative; z-index: 1; padding: 0 20px 80px; }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
-    /* ── FILTER / SEARCH BAR ─────────── */
-    .filter-strip {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 16px 0 14px;
-      align-items: center;
-    }
-    .search-wrap {
-      position: relative;
-      flex: 1;
-      min-width: 220px;
-    }
+    /* Filter strip */
+    .filter-strip { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 0 14px; align-items: center; }
+    .search-wrap { position: relative; flex: 1; min-width: 220px; }
     .search-wrap .search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text3);
-      font-size: 0.9rem;
-      pointer-events: none;
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text3); font-size: 0.9rem; pointer-events: none;
     }
-    .search-wrap input {
-      width: 100%;
-      padding: 10px 12px 10px 36px;
+    .search-wrap input { width: 100%; padding: 10px 12px 10px 36px; }
+    .filter-strip input, .filter-strip select {
+      padding: 10px 12px; border-radius: var(--radiusSm); border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); font-size: 0.825rem; font-family: inherit;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .filter-strip input,
-    .filter-strip select {
-      padding: 10px 12px;
-      border-radius: var(--radiusSm);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      font-size: 0.825rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+    .filter-strip input:focus, .filter-strip select:focus {
+      border-color: var(--accent); box-shadow: 0 0 0 3px var(--accentGlow);
     }
-    .filter-strip input:focus,
-    .filter-strip select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accentGlow);
-    }
-    .filter-strip select option { background: #1e293b; }
-    .result-count {
-      font-size: 0.78rem;
-      color: var(--text3);
-      white-space: nowrap;
-    }
+    .filter-strip select option { background: #1e293b; color: var(--text); }
+    .result-count { font-size: 0.78rem; color: var(--text3); white-space: nowrap; }
 
-    /* ── BUS CARDS ────────────────────── */
+    /* Bus cards */
     .bus-grid { display: grid; gap: 10px; }
 
     .bus-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-      position: relative;
-      overflow: hidden;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px 18px; transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      position: relative; overflow: hidden;
     }
     .bus-card::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
-      width: 3px;
-      border-radius: 3px 0 0 3px;
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px;
     }
     .bus-card.type-general::before { background: var(--accent); }
     .bus-card.type-ktc::before    { background: var(--yellow); }
     .bus-card.type-private::before { background: var(--purple); }
-    .bus-card:hover {
-      border-color: var(--border2);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-      transform: translateY(-1px);
-    }
-    .bus-card.next-up {
-      border-color: rgba(61,142,248,0.5);
-      background: rgba(61,142,248,0.06);
-      box-shadow: 0 0 0 1px rgba(61,142,248,0.2), 0 4px 20px rgba(61,142,248,0.1);
-    }
-    .bus-card.departing-soon {
-      border-color: rgba(245,197,66,0.4);
-      background: rgba(245,197,66,0.05);
-    }
+    .bus-card:hover { border-color: var(--border2); box-shadow: 0 4px 20px rgba(0,0,0,0.4); transform: translateY(-1px); }
+    .bus-card.next-up { border-color: rgba(61,142,248,0.5); background: rgba(61,142,248,0.06); }
+    .bus-card.departing-soon { border-color: rgba(245,197,66,0.4); background: rgba(245,197,66,0.05); }
 
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 10px;
-    }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
     .card-left { flex: 1; min-width: 0; }
-    .card-bus-no {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
+    .card-bus-no { font-size: 1.05rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    body.light-mode .card-bus-no { color: var(--text); }
     .type-badge {
-      font-size: 0.6rem;
-      padding: 2px 7px;
-      border-radius: 20px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-size: 0.6rem; padding: 2px 7px; border-radius: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
     }
     .type-badge.general { background: rgba(61,142,248,0.2); color: var(--accent); }
     .type-badge.ktc     { background: rgba(245,197,66,0.2); color: var(--yellow); }
     .type-badge.private { background: rgba(168,85,247,0.2); color: var(--purple); }
 
-    .card-route {
-      font-size: 0.82rem;
-      color: var(--text2);
-      margin-top: 3px;
-    }
+    .card-route { font-size: 0.82rem; color: var(--text2); margin-top: 3px; }
     .card-route strong { color: var(--text); }
-
     .card-right { text-align: right; flex-shrink: 0; }
-    .card-time {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--accent);
-      letter-spacing: -0.5px;
-      line-height: 1;
-    }
-    .time-remaining {
-      font-size: 0.7rem;
-      color: var(--text3);
-      margin-top: 2px;
-    }
+    .card-time { font-size: 1.4rem; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; line-height: 1; }
+    .time-remaining { font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
     .time-remaining.soon   { color: var(--yellow); font-weight: 600; }
     .time-remaining.urgent { color: var(--red); font-weight: 700; }
     .time-remaining.gone   { color: var(--text3); }
 
     .card-notes {
-      font-size: 0.78rem;
-      color: var(--text2);
-      margin-top: 8px;
-      padding: 6px 10px;
-      background: var(--surfaceS);
-      border-radius: 6px;
-      border-left: 2px solid var(--border);
+      font-size: 0.78rem; color: var(--text2); margin-top: 8px; padding: 6px 10px;
+      background: var(--surfaceS); border-radius: 6px; border-left: 2px solid var(--border);
     }
-
-    .card-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      margin-top: 10px;
-    }
+    .card-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
 
     .live-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 20px;
+      display: inline-flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 600;
+      padding: 3px 8px; border-radius: 20px;
     }
     .live-pill.on-time { background: var(--greenDim); color: var(--green); }
     .live-pill.delayed { background: var(--redDim);   color: var(--red); }
     .live-pill.early   { background: var(--yellowDim); color: var(--yellow); }
     .live-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: currentColor;
+      width: 6px; height: 6px; border-radius: 50%; background: currentColor;
       animation: blink 1.4s infinite;
     }
     @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 
-    .crowd-pill {
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 20px;
-    }
+    .crowd-pill { font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 20px; }
     .crowd-pill.low    { background: var(--greenDim);  color: var(--green); }
     .crowd-pill.medium { background: var(--yellowDim); color: var(--yellow); }
     .crowd-pill.high   { background: var(--redDim);    color: var(--red); }
 
-    .verified-pill {
-      font-size: 0.7rem;
-      color: var(--green);
-      font-weight: 600;
-    }
+    .verified-pill { font-size: 0.7rem; color: var(--green); font-weight: 600; }
 
     .status-badge {
-      font-size: 0.65rem;
-      padding: 2px 8px;
-      border-radius: 20px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-left: auto;
+      font-size: 0.65rem; padding: 2px 8px; border-radius: 20px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-left: auto;
     }
     .status-badge.next   { background: rgba(61,142,248,0.2); color: var(--accent); }
     .status-badge.soon   { background: var(--yellowDim);     color: var(--yellow); }
     .status-badge.passed { background: var(--surfaceS);       color: var(--text3); }
 
-    .card-actions {
-      display: flex;
-      gap: 6px;
-      margin-top: 10px;
-      flex-wrap: wrap;
-    }
+    .card-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
 
-    /* ── REMINDER BTN ────────────────── */
+    /* Remind button */
     .remind-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid;
-      font-family: inherit;
-      transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px;
+      font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid; font-family: inherit; transition: all 0.2s;
     }
-    .remind-btn.set {
-      background: var(--accentGlow);
-      border-color: rgba(61,142,248,0.4);
-      color: var(--accent);
-    }
-    .remind-btn.set:hover {
-      background: rgba(61,142,248,0.25);
-    }
+    .remind-btn.set { background: var(--accentGlow); border-color: rgba(61,142,248,0.4); color: var(--accent); }
+    .remind-btn.set:hover { background: rgba(61,142,248,0.25); }
     .remind-btn.active-reminder {
-      background: rgba(34,212,126,0.12);
-      border-color: rgba(34,212,126,0.4);
-      color: var(--green);
+      background: rgba(34,212,126,0.12); border-color: rgba(34,212,126,0.4); color: var(--green);
       animation: pulse-border 2s infinite;
     }
-    @keyframes pulse-border {
-      0%,100% { box-shadow: 0 0 0 0 rgba(34,212,126,0.3); }
-      50%      { box-shadow: 0 0 0 4px rgba(34,212,126,0); }
-    }
+    @keyframes pulse-border { 0%,100% { box-shadow: 0 0 0 0 rgba(34,212,126,0.3); } 50% { box-shadow: 0 0 0 4px rgba(34,212,126,0); } }
 
-    /* ── FAV BTN ─────────────────────── */
-    .fav-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 4px 6px;
-      border-radius: 6px;
-      transition: transform 0.2s;
-      line-height: 1;
-    }
+    .fav-btn { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 4px 6px; border-radius: 6px; transition: transform 0.2s; line-height: 1; }
     .fav-btn:hover { transform: scale(1.2); }
 
-    /* ── SMALL BTNS ──────────────────── */
     .btn-xs {
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      color: var(--text2);
-      cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s;
+      padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text2); cursor: pointer; font-family: inherit; transition: all 0.2s;
     }
     .btn-xs:hover { border-color: var(--border2); color: var(--text); }
     .btn-xs.green { background: var(--greenDim); border-color: rgba(34,212,126,0.4); color: var(--green); }
     .btn-xs.green:hover { background: rgba(34,212,126,0.25); }
 
-    /* ── COMMENT SECTION ─────────────── */
-    .comment-section {
-      margin-top: 10px;
-      border-top: 1px solid var(--border);
-      padding-top: 10px;
-      display: none;
-    }
+    .comment-section { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; display: none; }
     .comment-section.open { display: block; }
-    .comment-item {
-      font-size: 0.77rem;
-      color: var(--text2);
-      padding: 5px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-    }
+    .comment-item { font-size: 0.77rem; color: var(--text2); padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
     .comment-item strong { color: var(--text); }
     .comment-item .comment-time { font-size: 0.65rem; color: var(--text3); margin-left: 6px; }
-    .comment-row {
-      display: flex;
-      gap: 6px;
-      margin-top: 8px;
-    }
-    .comment-row input {
-      flex: 1;
-      padding: 7px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--bg2);
-      color: var(--text);
-      font-size: 0.8rem;
-      font-family: inherit;
-      outline: none;
-    }
-    .comment-row input:focus { border-color: var(--accent); }
-    .comment-row button {
-      padding: 7px 14px;
-      border-radius: 6px;
-      border: none;
-      background: var(--accent);
-      color: #fff;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-    }
+    .comment-row { display: flex; gap: 6px; margin-top: 8px; }
+    .comment-row input { flex: 1; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 0.8rem; font-family: inherit; outline: none; }
+    .comment-row button { padding: 7px 14px; border-radius: 6px; border: none; background: var(--accent); color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer; font-family: inherit; }
 
-    /* ── BUTTONS ─────────────────────── */
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 9px 18px;
-      border-radius: var(--radiusSm);
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      color: var(--text);
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s;
-      white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--radiusSm);
+      border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap;
     }
     .btn:hover { border-color: var(--border2); background: rgba(255,255,255,0.1); }
-    .btn.accent {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-    .btn.accent:hover { background: var(--accent2); border-color: var(--accent2); }
-    .btn.outline {
-      background: transparent;
-      border: 2px solid var(--accent);
-      color: var(--accent);
-    }
+    .btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.accent:hover { background: var(--accent2); }
+    .btn.outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
     .btn.outline:hover { background: var(--accent); color: #fff; }
     .btn.danger { background: var(--redDim); border-color: rgba(242,84,91,0.4); color: var(--red); }
     .btn.danger:hover { background: rgba(242,84,91,0.25); }
@@ -659,225 +389,91 @@
     .btn.sm { padding: 6px 12px; font-size: 0.78rem; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* ── USER / AUTH ─────────────────── */
-    .user-chip {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 0.8rem;
-      color: var(--text2);
-    }
-    .user-chip img {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      border: 2px solid var(--accent);
-      object-fit: cover;
-    }
+    .user-chip { display: flex; align-items: center; gap: 7px; font-size: 0.8rem; color: var(--text2); }
+    .user-chip img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--accent); object-fit: cover; }
     .user-chip .uname { font-weight: 600; color: var(--text); }
 
-    /* ── REMINDERS TAB ───────────────── */
-    .reminders-empty {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text3);
-    }
+    .reminders-empty { text-align: center; padding: 60px 20px; color: var(--text3); }
     .reminders-empty .big-icon { font-size: 3rem; margin-bottom: 12px; }
     .reminders-empty p { font-size: 0.9rem; }
 
     .reminder-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 18px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 14px 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
     }
-    .reminder-card .r-icon {
-      font-size: 1.5rem;
-      width: 44px;
-      height: 44px;
-      background: rgba(61,142,248,0.12);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
+    .reminder-card .r-icon { font-size: 1.5rem; width: 44px; height: 44px; background: rgba(61,142,248,0.12); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .reminder-card .r-info { flex: 1; min-width: 0; }
     .reminder-card .r-bus { font-weight: 700; color: #fff; font-size: 0.95rem; }
+    body.light-mode .reminder-card .r-bus { color: var(--text); }
     .reminder-card .r-route { font-size: 0.8rem; color: var(--text2); }
     .reminder-card .r-time { font-size: 0.78rem; color: var(--accent); font-weight: 600; margin-top: 2px; }
     .reminder-card .r-actions { display: flex; gap: 6px; }
 
-    /* ── NOTIFICATION TOAST ──────────── */
     .toast-container {
-      position: fixed;
-      bottom: 24px;
-      right: 20px;
-      z-index: 999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-width: 340px;
-      pointer-events: none;
+      position: fixed; bottom: 24px; right: 20px; z-index: 999; display: flex; flex-direction: column;
+      gap: 10px; max-width: 340px; pointer-events: none;
     }
     .toast {
-      background: var(--bg2);
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      box-shadow: var(--shadow);
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      animation: toastIn 0.3s ease;
-      pointer-events: all;
+      background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius);
+      padding: 14px 16px; box-shadow: var(--shadow); display: flex; gap: 12px; align-items: flex-start;
+      animation: toastIn 0.3s ease; pointer-events: all;
     }
     .toast.reminder-toast { border-color: rgba(61,142,248,0.4); }
     .toast .t-icon { font-size: 1.4rem; flex-shrink: 0; }
     .toast .t-content .t-title { font-weight: 700; font-size: 0.9rem; color: #fff; }
     .toast .t-content .t-body { font-size: 0.8rem; color: var(--text2); margin-top: 2px; }
-    .toast .t-close {
-      margin-left: auto;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text3);
-      font-size: 1rem;
-      line-height: 1;
-      padding: 2px;
-      flex-shrink: 0;
-    }
-    @keyframes toastIn {
-      from { opacity:0; transform: translateX(20px); }
-      to   { opacity:1; transform: translateX(0); }
-    }
+    .toast .t-close { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--text3); font-size: 1rem; line-height: 1; padding: 2px; flex-shrink: 0; }
+    @keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
 
-    /* ── REMINDER MODAL ──────────────── */
     .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.75);
-      backdrop-filter: blur(4px);
-      z-index: 500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 500;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
     }
     .modal {
-      background: var(--bg2);
-      border: 1px solid var(--border2);
-      border-radius: 20px;
-      padding: 28px;
-      max-width: 420px;
-      width: 100%;
-      box-shadow: var(--shadow);
+      background: var(--bg2); border: 1px solid var(--border2); border-radius: 20px;
+      padding: 28px; max-width: 420px; width: 100%; box-shadow: var(--shadow);
       animation: modalIn 0.25s ease;
     }
-    @keyframes modalIn {
-      from { opacity:0; transform: scale(0.95) translateY(10px); }
-      to   { opacity:1; transform: scale(1) translateY(0); }
-    }
-    .modal h3 {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 6px;
-    }
+    @keyframes modalIn { from { opacity:0; transform: scale(0.95) translateY(10px); } to { opacity:1; transform: scale(1) translateY(0); } }
+    .modal h3 { font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
     .modal .modal-sub { font-size: 0.83rem; color: var(--text2); margin-bottom: 20px; }
     .modal label { display: block; font-size: 0.78rem; color: var(--text2); margin-bottom: 5px; margin-top: 14px; }
     .modal input, .modal select, .modal textarea {
-      width: 100%;
-      padding: 10px 13px;
-      border-radius: var(--radiusSm);
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
-      color: var(--text);
-      font-size: 0.85rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
+      width: 100%; padding: 10px 13px; border-radius: var(--radiusSm); border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04); color: var(--text); font-size: 0.85rem; font-family: inherit;
+      outline: none; transition: border-color 0.2s;
     }
     .modal input:focus, .modal select:focus { border-color: var(--accent); }
-    .modal select option { background: #1e293b; }
+    .modal select option { background: #1e293b; color: var(--text); }
     .modal textarea { resize: vertical; min-height: 70px; }
     .modal .btn-row { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
 
-    /* Remind lead-time chips */
     .lead-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
     .lead-chip {
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text2);
-      cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s;
+      padding: 5px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text2); cursor: pointer; font-family: inherit; transition: all 0.2s;
     }
     .lead-chip:hover { border-color: var(--accent); color: var(--accent); }
     .lead-chip.selected { background: var(--accentGlow); border-color: var(--accent); color: var(--accent); }
 
-    /* ── ADMIN PANEL ─────────────────── */
-    .admin-tabs {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
-    }
+    .admin-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 18px; }
     .admin-tab-btn {
-      padding: 7px 14px;
-      border-radius: var(--radiusSm);
-      border: 1px solid var(--border);
-      background: none;
-      color: var(--text2);
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s;
+      padding: 7px 14px; border-radius: var(--radiusSm); border: 1px solid var(--border);
+      background: none; color: var(--text2); font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s;
     }
     .admin-tab-btn:hover { border-color: var(--border2); color: var(--text); }
     .admin-tab-btn.active { background: var(--accentGlow); border-color: rgba(61,142,248,0.4); color: var(--accent); }
     .admin-section { display: none; }
     .admin-section.active { display: block; }
 
-    /* ── SECTION HEADERS ─────────────── */
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 16px 0 10px;
-    }
-    .section-header h2 {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #fff;
-    }
-    .section-header .count {
-      font-size: 0.75rem;
-      padding: 2px 8px;
-      border-radius: 20px;
-      background: var(--surface2);
-      color: var(--text2);
-    }
+    .section-header { display: flex; align-items: center; gap: 10px; padding: 16px 0 10px; }
+    .section-header h2 { font-size: 1rem; font-weight: 700; color: #fff; }
+    body.light-mode .section-header h2 { color: var(--text); }
+    .section-header .count { font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; background: var(--surface2); color: var(--text2); }
 
-    /* ── UTIL ────────────────────────── */
     .hidden { display: none !important; }
-    .no-results {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text3);
-      font-size: 0.9rem;
-    }
+    .no-results { text-align: center; padding: 60px 20px; color: var(--text3); font-size: 0.9rem; }
 
-    /* ── RESPONSIVE ──────────────────── */
     @media (max-width: 600px) {
       .header { padding: 0 14px; }
       .hero { margin: 12px 14px 0; padding: 18px 16px; }
@@ -890,7 +486,6 @@
       .logo { font-size: 1rem; }
     }
 
-    /* ── SCROLLBAR ───────────────────── */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -899,15 +494,16 @@
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     HEADER
-══════════════════════════════════════ -->
+<!-- Offline banner -->
+<div class="offline-banner">📵 You're offline — showing cached timetable</div>
+
 <header class="header">
   <div class="logo">
     <div class="logo-icon">🚌</div>
     CMSR<span>Bus</span>
   </div>
   <div class="header-right">
+    <button class="btn sm" id="themeToggle" title="Toggle theme">🌓</button>
     <div id="userChip" class="user-chip hidden"></div>
     <button id="loginBtn" class="btn outline sm">🔐 Sign in</button>
     <button id="logoutBtn" class="btn sm hidden">Sign Out</button>
@@ -915,18 +511,12 @@
   </div>
 </header>
 
-<!-- ══════════════════════════════════════
-     ALERT BANNER
-══════════════════════════════════════ -->
 <div id="alertBar" class="alert-bar">
   <span>🚨</span>
   <span id="alertMsg" class="alert-msg"></span>
   <button class="close-alert" id="closeAlertBtn">×</button>
 </div>
 
-<!-- ══════════════════════════════════════
-     NEXT BUS HERO
-══════════════════════════════════════ -->
 <div class="hero" id="hero">
   <div class="hero-inner">
     <div class="hero-bus-icon">🚌</div>
@@ -950,33 +540,21 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     TABS
-══════════════════════════════════════ -->
 <nav class="tabs-nav">
   <button class="tab-btn active" data-tab="schedule" id="scheduleTab">📅 Schedule</button>
   <button class="tab-btn" data-tab="reminders" id="remindersTab">🔔 Reminders <span id="reminderBadge" class="hidden" style="background:var(--red);color:#fff;font-size:0.6rem;padding:1px 5px;border-radius:10px;"></span></button>
   <button class="tab-btn" data-tab="favorites" id="favoritesTab">⭐ Favorites</button>
 </nav>
 
-<!-- ══════════════════════════════════════
-     MAIN
-══════════════════════════════════════ -->
 <div class="main">
-
-  <!-- ── SCHEDULE TAB ─────────────────── -->
   <div class="tab-panel active" id="panel-schedule">
     <div class="filter-strip">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
         <input type="text" id="searchInput" placeholder="Search bus no., route, notes..." autocomplete="off" />
       </div>
-      <select id="filterFrom">
-        <option value="all">All Origins</option>
-      </select>
-      <select id="filterTo">
-        <option value="all">All Destinations</option>
-      </select>
+      <select id="filterFrom"><option value="all">All Origins</option></select>
+      <select id="filterTo"><option value="all">All Destinations</option></select>
       <select id="filterType">
         <option value="all">All Types</option>
         <option value="general">General</option>
@@ -986,16 +564,12 @@
       <button class="btn sm" id="clearFiltersBtn">Clear</button>
       <span class="result-count" id="resultCount"></span>
     </div>
-
     <div class="bus-grid" id="busList"></div>
     <div class="no-results hidden" id="noResults">No buses match your filters 🚏</div>
   </div>
 
-  <!-- ── REMINDERS TAB ────────────────── -->
   <div class="tab-panel" id="panel-reminders">
-    <div class="section-header">
-      <h2>🔔 My Reminders</h2>
-    </div>
+    <div class="section-header"><h2>🔔 My Reminders</h2></div>
     <div id="remindersList"></div>
     <div id="remindersEmpty" class="reminders-empty hidden">
       <div class="big-icon">🔔</div>
@@ -1003,20 +577,13 @@
     </div>
   </div>
 
-  <!-- ── FAVORITES TAB ────────────────── -->
   <div class="tab-panel" id="panel-favorites">
-    <div class="section-header">
-      <h2>⭐ Favorite Buses</h2>
-    </div>
+    <div class="section-header"><h2>⭐ Favorite Buses</h2></div>
     <div class="bus-grid" id="favList"></div>
     <div id="favEmpty" class="no-results hidden">No favorites yet. Star a bus to save it here.</div>
   </div>
-
 </div>
 
-<!-- ══════════════════════════════════════
-     REMINDER MODAL
-══════════════════════════════════════ -->
 <div id="reminderModal" class="modal-overlay hidden">
   <div class="modal">
     <h3>🔔 Set a Reminder</h3>
@@ -1041,9 +608,6 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     ADMIN MODAL
-══════════════════════════════════════ -->
 <div id="adminModal" class="modal-overlay hidden">
   <div class="modal" style="max-width:520px;">
     <h3>⚙️ Admin Panel</h3>
@@ -1054,90 +618,50 @@
       <button class="admin-tab-btn" data-atab="live">📍 Live Update</button>
     </div>
 
-    <!-- Add Bus -->
     <div id="atab-add" class="admin-section active">
       <label>Bus Number</label><input type="text" id="admAddBusNo" placeholder="e.g. 9424">
-      <label>Type</label>
-      <select id="admAddType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
+      <label>Type</label><select id="admAddType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
       <label>From</label><input type="text" id="admAddFrom" placeholder="Origin">
       <label>To</label><input type="text" id="admAddTo" placeholder="Destination">
       <label>Time (HH:MM)</label><input type="time" id="admAddTime">
       <label>Notes</label><textarea id="admAddNotes" placeholder="Optional notes..."></textarea>
-      <div class="btn-row">
-        <button class="btn sm" id="admCancelAdd">Cancel</button>
-        <button class="btn sm green-btn" id="admSaveAdd">Save Bus</button>
-      </div>
+      <div class="btn-row"><button class="btn sm" id="admCancelAdd">Cancel</button><button class="btn sm green-btn" id="admSaveAdd">Save Bus</button></div>
     </div>
 
-    <!-- Edit Bus -->
     <div id="atab-edit" class="admin-section">
-      <label>Select Bus</label>
-      <select id="admEditSelect"><option value="">-- Choose a bus --</option></select>
+      <label>Select Bus</label><select id="admEditSelect"><option value="">-- Choose a bus --</option></select>
       <label>Bus Number</label><input type="text" id="admEditBusNo">
-      <label>Type</label>
-      <select id="admEditType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
+      <label>Type</label><select id="admEditType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
       <label>From</label><input type="text" id="admEditFrom">
       <label>To</label><input type="text" id="admEditTo">
       <label>Time (HH:MM)</label><input type="time" id="admEditTime">
       <label>Notes</label><textarea id="admEditNotes"></textarea>
-      <div class="btn-row">
-        <button class="btn sm danger" id="admDeleteBus">🗑 Delete</button>
-        <button class="btn sm" id="admCancelEdit">Cancel</button>
-        <button class="btn sm green-btn" id="admSaveEdit">Update</button>
-      </div>
+      <div class="btn-row"><button class="btn sm danger" id="admDeleteBus">🗑 Delete</button><button class="btn sm" id="admCancelEdit">Cancel</button><button class="btn sm green-btn" id="admSaveEdit">Update</button></div>
     </div>
 
-    <!-- Alerts -->
     <div id="atab-alerts" class="admin-section">
-      <label>Alert Message (shown to all users)</label>
-      <input type="text" id="admAlertMsg" placeholder="e.g. Bus 9424 delayed by 20 min today">
-      <div class="btn-row">
-        <button class="btn sm danger" id="admClearAlert">Clear Alert</button>
-        <button class="btn sm accent" id="admSetAlert">Set Alert</button>
-      </div>
+      <label>Alert Message (shown to all users)</label><input type="text" id="admAlertMsg" placeholder="e.g. Bus 9424 delayed by 20 min today">
+      <div class="btn-row"><button class="btn sm danger" id="admClearAlert">Clear Alert</button><button class="btn sm accent" id="admSetAlert">Set Alert</button></div>
     </div>
 
-    <!-- Live Update -->
     <div id="atab-live" class="admin-section">
-      <label>Select Bus</label>
-      <select id="admLiveSelect"><option value="">-- Choose a bus --</option></select>
-      <label>Live Status</label>
-      <select id="admLiveStatus">
-        <option value="on-time">On Time</option>
-        <option value="delayed">Delayed</option>
-        <option value="early">Early</option>
-      </select>
-      <label>Current Location</label>
-      <input type="text" id="admLiveLocation" placeholder="e.g. Near Margao KTC">
-      <label>Delay (minutes)</label>
-      <input type="number" id="admLiveDelay" value="0" min="0">
-      <label>Crowd Level</label>
-      <select id="admLiveCrowd">
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
-        <option value="high">High</option>
-      </select>
-      <div class="btn-row">
-        <button class="btn sm" id="admCancelLive">Cancel</button>
-        <button class="btn sm green-btn" id="admSaveLive">Update Live Data</button>
-      </div>
+      <label>Select Bus</label><select id="admLiveSelect"><option value="">-- Choose a bus --</option></select>
+      <label>Live Status</label><select id="admLiveStatus"><option value="on-time">On Time</option><option value="delayed">Delayed</option><option value="early">Early</option></select>
+      <label>Current Location</label><input type="text" id="admLiveLocation" placeholder="e.g. Near Margao KTC">
+      <label>Delay (minutes)</label><input type="number" id="admLiveDelay" value="0" min="0">
+      <label>Crowd Level</label><select id="admLiveCrowd"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+      <div class="btn-row"><button class="btn sm" id="admCancelLive">Cancel</button><button class="btn sm green-btn" id="admSaveLive">Update Live Data</button></div>
     </div>
 
     <button class="btn sm" style="width:100%;margin-top:14px;justify-content:center;" id="adminCloseBtn">Close Panel</button>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     TOAST CONTAINER
-══════════════════════════════════════ -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- ══════════════════════════════════════
-     JAVASCRIPT
-══════════════════════════════════════ -->
 <script>
   // ════════════════════════════════════════
-  // 🔥 FIREBASE CONFIGURATION
+  // FIREBASE CONFIGURATION
   // ════════════════════════════════════════
   const firebaseConfig = {
     apiKey: "AIzaSyDSeRWOqJWvIJjFhSG-5NrRvYtuTNevqOA",
@@ -1149,67 +673,65 @@
     appId: "1:1088713528432:web:862382454428a2f79090b5",
     measurementId: "G-5MQ26F7GQE"
   };
-
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db   = firebase.firestore();
 
   // ════════════════════════════════════════
-  // 🔥 SEED DATA — DO NOT ALTER, REMOVE, OR REGENERATE
-  // This is the permanent core database.
+  // SEED DATA — Do not alter, remove, or regenerate
   // ════════════════════════════════════════
   const SEED = [
-    { id:'s1',   busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'07:00', notes:'Morning via KTC',                                            addedBy:'raju', verified:[] },
-    { id:'s2',   busNo:'4209',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:00', notes:'',                                                           addedBy:'raju', verified:[] },
-    { id:'s3',   busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:15', notes:'',                                                           addedBy:'raju', verified:['a','b','c','d','e'] },
-    { id:'s4',   busNo:'1747',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:44', notes:'Flacy Route',                                                addedBy:'raju', verified:[] },
-    { id:'s5',   busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:15', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:['a','b','c'] },
-    { id:'s6',   busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:36', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:[] },
-    { id:'s7',   busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:30', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:[] },
-    { id:'s8',   busNo:'4209',        type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:55', notes:'✅ Bus 4209 confirmed',                                      addedBy:'raju', verified:['x','y'] },
-    { id:'s9',   busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'13:30', notes:'⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus',           addedBy:'raju', verified:['a','b','c','d','e','f'] },
-    { id:'s10',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'14:40', notes:'Last College→Kamat bus',                                    addedBy:'raju', verified:[] },
-    { id:'s11',  busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'11:38', notes:'',                                                           addedBy:'raju', verified:[] },
-    { id:'s12',  busNo:'9424',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'12:47', notes:'',                                                           addedBy:'raju', verified:[] },
-    { id:'s13',  busNo:'4209',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:42', notes:'',                                                           addedBy:'raju', verified:[] },
-    { id:'s14',  busNo:'1747',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:50', notes:'⚡ Tight if catching 1:30 bus',                              addedBy:'raju', verified:[] },
-    { id:'s15',  busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'14:10', notes:'✅ Safe after 1:30 college bus',                             addedBy:'raju', verified:['a','b','c'] },
-    { id:'s16',  busNo:'KTC',         type:'ktc',      from:'Varca',                     to:'KTC Bus Stand',            time:'07:00', notes:'Morning KTC service',                                        addedBy:'raju', verified:[] },
-    { id:'s17',  busNo:'KTC',         type:'ktc',      from:'KTC Bus Stand',             to:'Margao',                   time:'08:30', notes:'',                                                           addedBy:'raju', verified:[] },
-    { id:'s18',  busNo:'7721',        type:'general',  from:'ACMSR College',             to:'Margao',                   time:'13:00', notes:'Via Navelim',                                                addedBy:'raju', verified:[] },
-    { id:'s20',  busNo:'5463',        type:'general',  from:'ACMSR College',             to:'Kamat',                    time:'16:40', notes:'Evening bus',                                                addedBy:'raju', verified:[] },
-    { id:'s21',  busNo:'MOB1',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'07:30', notes:'Arrives Margao ~8:40 AM',                                   addedBy:'raju', verified:[] },
-    { id:'s22',  busNo:'MOB2',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'09:55', notes:'Arrives Margao ~11:30 AM',                                  addedBy:'raju', verified:[] },
-    { id:'s23',  busNo:'MOB3',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'13:05', notes:'Arrives Margao ~3:00 PM',                                   addedBy:'raju', verified:[] },
-    { id:'s24',  busNo:'MOB4',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'16:45', notes:'Arrives Margao ~5:50 PM',                                   addedBy:'raju', verified:[] },
-    { id:'s25',  busNo:'MOB1',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'08:40', notes:'Departs after 7:30 AM Mobor bus',                           addedBy:'raju', verified:[] },
-    { id:'s26',  busNo:'MOB2',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'11:30', notes:'Departs after 9:55 AM Mobor bus',                           addedBy:'raju', verified:[] },
-    { id:'s27',  busNo:'MOB3',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'15:00', notes:'Departs after 1:05 PM Mobor bus',                           addedBy:'raju', verified:[] },
-    { id:'s28',  busNo:'MOB4',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'17:50', notes:'Departs after 4:45 PM Mobor bus',                           addedBy:'raju', verified:[] },
-    { id:'s43',  busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'11:38', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
-    { id:'s44',  busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'12:47', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
-    { id:'s45',  busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:42', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
-    { id:'s46',  busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:50', notes:'⚡ Tight — only if 1:30 PM college bus on time',            addedBy:'raju', verified:[] },
-    { id:'s47',  busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'14:10', notes:'✅ Safe connection after 1:30 PM College bus',               addedBy:'raju', verified:[] },
-    { id:'s29',  busNo:'MRG-69',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:15', notes:'Arrives KTC ~7:30 AM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
-    { id:'s32',  busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:50', notes:'Arrives KTC ~9:05 AM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
-    { id:'s35',  busNo:'MRG-374MB',   type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'12:10', notes:'Arrives KTC ~12:25 PM · Kadamba govt bus',                 addedBy:'raju', verified:[] },
-    { id:'s38',  busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'14:20', notes:'Arrives KTC ~2:35 PM · Kadamba govt bus (2nd trip)',       addedBy:'raju', verified:[] },
-    { id:'s41',  busNo:'MRG-66',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'16:30', notes:'Arrives KTC ~4:45 PM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
-    { id:'s30',  busNo:'PVT-CUR01',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:45', notes:'Arrives KTC ~8:00 AM · via Curtorim',                      addedBy:'raju', verified:[] },
-    { id:'s31',  busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:21', notes:'Arrives KTC ~8:35 AM · via Panaji route',                  addedBy:'raju', verified:[] },
-    { id:'s33',  busNo:'PVT-MAI05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'09:15', notes:'Arrives KTC ~9:30 AM · via Maina',                         addedBy:'raju', verified:[] },
-    { id:'s34',  busNo:'PVT-CUR02',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'10:30', notes:'Arrives KTC ~10:45 AM · via Curtorim',                     addedBy:'raju', verified:[] },
-    { id:'s36',  busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:15', notes:'Arrives KTC ~1:30 PM · via Panaji route (2nd)',            addedBy:'raju', verified:[] },
-    { id:'s37',  busNo:'PVT-CUR03',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:45', notes:'Arrives KTC ~2:00 PM · via Curtorim',                      addedBy:'raju', verified:[] },
-    { id:'s39',  busNo:'PVT-MAI08',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'15:45', notes:'Arrives KTC ~4:00 PM · via Maina',                         addedBy:'raju', verified:[] },
-    { id:'s40',  busNo:'PVT-CUR04',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'17:15', notes:'Arrives KTC ~5:30 PM · via Curtorim',                      addedBy:'raju', verified:[] },
-    { id:'s42',  busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'18:10', notes:'Arrives KTC ~6:25 PM · via Panaji route (3rd)',            addedBy:'raju', verified:[] },
-    { id:'s43b', busNo:'PVT-CUR05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'19:00', notes:'Arrives KTC ~7:15 PM · via Curtorim',                      addedBy:'raju', verified:[] },
+    { id:'s1',  busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'07:00', notes:'Morning via KTC',                                            addedBy:'raju', verified:[] },
+    { id:'s2',  busNo:'4209',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:00', notes:'',                                                           addedBy:'raju', verified:[] },
+    { id:'s3',  busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:15', notes:'',                                                           addedBy:'raju', verified:['a','b','c','d','e'] },
+    { id:'s4',  busNo:'1747',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:44', notes:'Flacy Route',                                                addedBy:'raju', verified:[] },
+    { id:'s5',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:15', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:['a','b','c'] },
+    { id:'s6',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:36', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:[] },
+    { id:'s7',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:30', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:[] },
+    { id:'s8',  busNo:'4209',        type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:55', notes:'✅ Bus 4209 confirmed',                                      addedBy:'raju', verified:['x','y'] },
+    { id:'s9',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'13:30', notes:'⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus',           addedBy:'raju', verified:['a','b','c','d','e','f'] },
+    { id:'s10', busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'14:40', notes:'Last College→Kamat bus',                                    addedBy:'raju', verified:[] },
+    { id:'s11', busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'11:38', notes:'',                                                           addedBy:'raju', verified:[] },
+    { id:'s12', busNo:'9424',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'12:47', notes:'',                                                           addedBy:'raju', verified:[] },
+    { id:'s13', busNo:'4209',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:42', notes:'',                                                           addedBy:'raju', verified:[] },
+    { id:'s14', busNo:'1747',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:50', notes:'⚡ Tight if catching 1:30 bus',                              addedBy:'raju', verified:[] },
+    { id:'s15', busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'14:10', notes:'✅ Safe after 1:30 college bus',                             addedBy:'raju', verified:['a','b','c'] },
+    { id:'s16', busNo:'KTC',         type:'ktc',      from:'Varca',                     to:'KTC Bus Stand',            time:'07:00', notes:'Morning KTC service',                                        addedBy:'raju', verified:[] },
+    { id:'s17', busNo:'KTC',         type:'ktc',      from:'KTC Bus Stand',             to:'Margao',                   time:'08:30', notes:'',                                                           addedBy:'raju', verified:[] },
+    { id:'s18', busNo:'7721',        type:'general',  from:'ACMSR College',             to:'Margao',                   time:'13:00', notes:'Via Navelim',                                                addedBy:'raju', verified:[] },
+    { id:'s20', busNo:'5463',        type:'general',  from:'ACMSR College',             to:'Kamat',                    time:'16:40', notes:'Evening bus',                                                addedBy:'raju', verified:[] },
+    { id:'s21', busNo:'MOB1',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'07:30', notes:'Arrives Margao ~8:40 AM',                                   addedBy:'raju', verified:[] },
+    { id:'s22', busNo:'MOB2',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'09:55', notes:'Arrives Margao ~11:30 AM',                                  addedBy:'raju', verified:[] },
+    { id:'s23', busNo:'MOB3',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'13:05', notes:'Arrives Margao ~3:00 PM',                                   addedBy:'raju', verified:[] },
+    { id:'s24', busNo:'MOB4',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'16:45', notes:'Arrives Margao ~5:50 PM',                                   addedBy:'raju', verified:[] },
+    { id:'s25', busNo:'MOB1',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'08:40', notes:'Departs after 7:30 AM Mobor bus',                           addedBy:'raju', verified:[] },
+    { id:'s26', busNo:'MOB2',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'11:30', notes:'Departs after 9:55 AM Mobor bus',                           addedBy:'raju', verified:[] },
+    { id:'s27', busNo:'MOB3',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'15:00', notes:'Departs after 1:05 PM Mobor bus',                           addedBy:'raju', verified:[] },
+    { id:'s28', busNo:'MOB4',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'17:50', notes:'Departs after 4:45 PM Mobor bus',                           addedBy:'raju', verified:[] },
+    { id:'s43', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'11:38', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
+    { id:'s44', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'12:47', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
+    { id:'s45', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:42', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
+    { id:'s46', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:50', notes:'⚡ Tight — only if 1:30 PM college bus on time',            addedBy:'raju', verified:[] },
+    { id:'s47', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'14:10', notes:'✅ Safe connection after 1:30 PM College bus',               addedBy:'raju', verified:[] },
+    { id:'s29', busNo:'MRG-69',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:15', notes:'Arrives KTC ~7:30 AM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
+    { id:'s32', busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:50', notes:'Arrives KTC ~9:05 AM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
+    { id:'s35', busNo:'MRG-374MB',   type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'12:10', notes:'Arrives KTC ~12:25 PM · Kadamba govt bus',                 addedBy:'raju', verified:[] },
+    { id:'s38', busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'14:20', notes:'Arrives KTC ~2:35 PM · Kadamba govt bus (2nd trip)',       addedBy:'raju', verified:[] },
+    { id:'s41', busNo:'MRG-66',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'16:30', notes:'Arrives KTC ~4:45 PM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
+    { id:'s30', busNo:'PVT-CUR01',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:45', notes:'Arrives KTC ~8:00 AM · via Curtorim',                      addedBy:'raju', verified:[] },
+    { id:'s31', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:21', notes:'Arrives KTC ~8:35 AM · via Panaji route',                  addedBy:'raju', verified:[] },
+    { id:'s33', busNo:'PVT-MAI05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'09:15', notes:'Arrives KTC ~9:30 AM · via Maina',                         addedBy:'raju', verified:[] },
+    { id:'s34', busNo:'PVT-CUR02',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'10:30', notes:'Arrives KTC ~10:45 AM · via Curtorim',                     addedBy:'raju', verified:[] },
+    { id:'s36', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:15', notes:'Arrives KTC ~1:30 PM · via Panaji route (2nd)',            addedBy:'raju', verified:[] },
+    { id:'s37', busNo:'PVT-CUR03',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:45', notes:'Arrives KTC ~2:00 PM · via Curtorim',                      addedBy:'raju', verified:[] },
+    { id:'s39', busNo:'PVT-MAI08',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'15:45', notes:'Arrives KTC ~4:00 PM · via Maina',                         addedBy:'raju', verified:[] },
+    { id:'s40', busNo:'PVT-CUR04',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'17:15', notes:'Arrives KTC ~5:30 PM · via Curtorim',                      addedBy:'raju', verified:[] },
+    { id:'s42', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'18:10', notes:'Arrives KTC ~6:25 PM · via Panaji route (3rd)',            addedBy:'raju', verified:[] },
+    { id:'s43b',busNo:'PVT-CUR05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'19:00', notes:'Arrives KTC ~7:15 PM · via Curtorim',                      addedBy:'raju', verified:[] },
   ];
 
   // ════════════════════════════════════════
-  // 🔥 GLOBAL STATE
+  // STATE
   // ════════════════════════════════════════
   let allBuses       = [...SEED];
   let liveDataMap    = {};
@@ -1220,14 +742,13 @@
   let firestoreReady = false;
   let activeTab      = 'schedule';
 
-  // reminders: { busId: { leadMins, repeat, busData } }
   let reminders = JSON.parse(localStorage.getItem('cmsrReminders') || '{}');
   let reminderTimers = {};
 
   const ADMIN_EMAIL = 'zevbuildstudio@gmail.com';
 
   // ════════════════════════════════════════
-  // 🔥 DOM REFS
+  // DOM REFS
   // ════════════════════════════════════════
   const $busList      = document.getElementById('busList');
   const $favList      = document.getElementById('favList');
@@ -1249,9 +770,10 @@
   const $userChip     = document.getElementById('userChip');
   const $adminBtn     = document.getElementById('adminBtn');
   const $reminderBadge= document.getElementById('reminderBadge');
+  const $themeToggle  = document.getElementById('themeToggle');
 
   // ════════════════════════════════════════
-  // ⏰ TIME HELPERS
+  // TIME HELPERS
   // ════════════════════════════════════════
   function nowMinutes() {
     const d = new Date();
@@ -1272,13 +794,13 @@
   }
 
   // ════════════════════════════════════════
-  // 🔥 HERO — NEXT BUS COUNTDOWN
+  // HERO COUNTDOWN
   // ════════════════════════════════════════
   function updateHero() {
     const now = nowMinutes();
     const upcoming = allBuses
       .map(b => ({ ...b, minsLeft: timeToMins(b.time) - now }))
-      .filter(b => b.minsLeft > 0 && b.minsLeft <= 480)  // within 8 hours
+      .filter(b => b.minsLeft > 0 && b.minsLeft <= 480)
       .sort((a,b) => a.minsLeft - b.minsLeft);
 
     const next = upcoming[0];
@@ -1304,12 +826,11 @@
   }
 
   // ════════════════════════════════════════
-  // 🔥 POPULATE FILTER DROPDOWNS
+  // POPULATE DROPDOWNS
   // ════════════════════════════════════════
   function populateDropdowns() {
     const froms = [...new Set(allBuses.map(b => b.from))].sort();
     const tos   = [...new Set(allBuses.map(b => b.to))].sort();
-
     $filterFrom.innerHTML = '<option value="all">All Origins</option>' +
       froms.map(f => `<option value="${f}">${f}</option>`).join('');
     $filterTo.innerHTML = '<option value="all">All Destinations</option>' +
@@ -1317,7 +838,7 @@
   }
 
   // ════════════════════════════════════════
-  // 🔥 RENDER BUS CARDS
+  // RENDER CARDS
   // ════════════════════════════════════════
   function getBusStatus(b) {
     const mins = minsUntil(b.time);
@@ -1341,15 +862,10 @@
 
     let timeRemLabel = '';
     let timeRemClass = '';
-    if (busStatus === 'passed') {
-      timeRemLabel = 'Already departed'; timeRemClass = 'gone';
-    } else if (busStatus === 'urgent') {
-      timeRemLabel = `🚨 ${minsLeft} min left!`; timeRemClass = 'urgent';
-    } else if (busStatus === 'soon') {
-      timeRemLabel = `⚠️ ${minsLeft} min left`; timeRemClass = 'soon';
-    } else {
-      timeRemLabel = `${minsLeft} min away`; timeRemClass = '';
-    }
+    if (busStatus === 'passed') { timeRemLabel = 'Already departed'; timeRemClass = 'gone'; }
+    else if (busStatus === 'urgent') { timeRemLabel = `🚨 ${minsLeft} min left!`; timeRemClass = 'urgent'; }
+    else if (busStatus === 'soon') { timeRemLabel = `⚠️ ${minsLeft} min left`; timeRemClass = 'soon'; }
+    else { timeRemLabel = `${minsLeft} min away`; timeRemClass = ''; }
 
     let cardClass = `bus-card type-${b.type}`;
     let cardBadge = '';
@@ -1414,7 +930,6 @@
     const typeF    = $filterType.value;
     const fromF    = $filterFrom.value;
     const toF      = $filterTo.value;
-
     return allBuses.filter(b => {
       if (typeF !== 'all' && b.type !== typeF) return false;
       if (fromF !== 'all' && b.from !== fromF) return false;
@@ -1461,9 +976,6 @@
     updateReminderBadge();
   }
 
-  // ════════════════════════════════════════
-  // 🔥 CARD EVENT LISTENERS
-  // ════════════════════════════════════════
   function attachCardListeners(container) {
     container.querySelectorAll('[data-action]').forEach(el => {
       el.addEventListener('click', handleCardAction);
@@ -1475,20 +987,18 @@
     const action = e.currentTarget.dataset.action;
     const id     = e.currentTarget.dataset.id;
     if (!id && action !== 'submit-comment') return;
-
     switch(action) {
       case 'fav':             toggleFavorite(id); break;
       case 'remind':          openReminderModal(id); break;
       case 'verify':          verifyBus(id); break;
       case 'crowd':           promptCrowd(id); break;
       case 'toggle-comments': toggleComments(id); break;
-      case 'add-comment':     break; // handled by keydown
       case 'submit-comment':  submitComment(id, e.currentTarget.closest('.comment-row')); break;
     }
   }
 
   // ════════════════════════════════════════
-  // 🔥 FAVORITES
+  // FAVORITES
   // ════════════════════════════════════════
   function toggleFavorite(id) {
     if (!currentUser) { showToast('Sign In Required', 'Please sign in to save favorites.', '⭐'); return; }
@@ -1497,7 +1007,6 @@
     syncFavorites();
     renderAll();
   }
-
   function syncFavorites() {
     if (!currentUser || !firestoreReady) return;
     db.collection('users').doc(currentUser.uid).set({
@@ -1507,7 +1016,6 @@
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).catch(e => console.warn('Fav sync:', e));
   }
-
   function loadFavorites() {
     if (!currentUser) { favoritesSet.clear(); renderAll(); return; }
     db.collection('users').doc(currentUser.uid).get().then(doc => {
@@ -1517,7 +1025,7 @@
   }
 
   // ════════════════════════════════════════
-  // 🔔 REMINDER SYSTEM
+  // REMINDER SYSTEM
   // ════════════════════════════════════════
   let pendingReminderBusId = null;
   let selectedLeadMins     = 5;
@@ -1526,20 +1034,13 @@
     pendingReminderBusId = id;
     const bus = allBuses.find(b => b.id === id);
     if (!bus) return;
-
-    // Pre-fill lead time if reminder already exists
     const existing = reminders[id];
     selectedLeadMins = existing ? existing.leadMins : 5;
-
-    document.getElementById('reminderModalSub').textContent =
-      `Bus ${bus.busNo} — ${bus.from} → ${bus.to} at ${fmt12(bus.time)}`;
+    document.getElementById('reminderModalSub').textContent = `Bus ${bus.busNo} — ${bus.from} → ${bus.to} at ${fmt12(bus.time)}`;
     document.getElementById('reminderRepeat').value = existing ? existing.repeat : 'daily';
-
-    // Update chip selection
     document.querySelectorAll('.lead-chip').forEach(c => {
       c.classList.toggle('selected', parseInt(c.dataset.mins) === selectedLeadMins);
     });
-
     document.getElementById('reminderModal').classList.remove('hidden');
   }
 
@@ -1560,13 +1061,10 @@
     if (!pendingReminderBusId) return;
     const bus    = allBuses.find(b => b.id === pendingReminderBusId);
     const repeat = document.getElementById('reminderRepeat').value;
-
     reminders[pendingReminderBusId] = { leadMins: selectedLeadMins, repeat, busData: bus };
     localStorage.setItem('cmsrReminders', JSON.stringify(reminders));
-
     document.getElementById('reminderModal').classList.add('hidden');
     pendingReminderBusId = null;
-
     requestNotifPermission();
     scheduleAllReminders();
     renderAll();
@@ -1580,19 +1078,15 @@
   }
 
   function scheduleAllReminders() {
-    // Clear existing timers
     Object.values(reminderTimers).forEach(clearTimeout);
     reminderTimers = {};
-
     const now = nowMinutes();
     Object.entries(reminders).forEach(([busId, rem]) => {
-      const bus     = allBuses.find(b => b.id === busId);
+      const bus = allBuses.find(b => b.id === busId);
       if (!bus) return;
       const triggerAt = timeToMins(bus.time) - rem.leadMins;
-      let msUntil   = (triggerAt - now) * 60 * 1000;
-
-      if (msUntil <= 0) return; // already passed today
-
+      let msUntil = (triggerAt - now) * 60 * 1000;
+      if (msUntil <= 0) return;
       reminderTimers[busId] = setTimeout(() => {
         fireReminder(bus, rem.leadMins);
         if (rem.repeat === 'once') {
@@ -1607,13 +1101,9 @@
   function fireReminder(bus, leadMins) {
     const title = `🚌 Bus ${bus.busNo} in ${leadMins} min!`;
     const body  = `${bus.from} → ${bus.to} departs at ${fmt12(bus.time)}. Get ready!`;
-
-    // Browser notification
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, { body, icon: '🚌', tag: `bus-${bus.id}` });
     }
-
-    // In-app toast
     showToast(title, body, '🚌', true, 10000);
   }
 
@@ -1629,11 +1119,7 @@
     const $list = document.getElementById('remindersList');
     const $empty= document.getElementById('remindersEmpty');
     const entries = Object.entries(reminders);
-    if (entries.length === 0) {
-      $list.innerHTML = '';
-      $empty.classList.remove('hidden');
-      return;
-    }
+    if (entries.length === 0) { $list.innerHTML = ''; $empty.classList.remove('hidden'); return; }
     $empty.classList.add('hidden');
     $list.innerHTML = entries.map(([busId, rem]) => {
       const bus = allBuses.find(b => b.id === busId) || rem.busData;
@@ -1658,16 +1144,12 @@
 
   function updateReminderBadge() {
     const count = Object.keys(reminders).length;
-    if (count > 0) {
-      $reminderBadge.textContent = count;
-      $reminderBadge.classList.remove('hidden');
-    } else {
-      $reminderBadge.classList.add('hidden');
-    }
+    if (count > 0) { $reminderBadge.textContent = count; $reminderBadge.classList.remove('hidden'); }
+    else { $reminderBadge.classList.add('hidden'); }
   }
 
   // ════════════════════════════════════════
-  // 🔥 VERIFY BUS
+  // VERIFY & CROWD
   // ════════════════════════════════════════
   function verifyBus(id) {
     if (!currentUser) return;
@@ -1682,9 +1164,6 @@
       .catch(e => console.warn(e));
   }
 
-  // ════════════════════════════════════════
-  // 🔥 CROWD REPORT
-  // ════════════════════════════════════════
   function promptCrowd(id) {
     if (!currentUser) return;
     const level = prompt('Crowd level on this bus?\nType: low, medium, or high', 'medium');
@@ -1693,10 +1172,7 @@
       level: level.toLowerCase(),
       reportedBy: currentUser.displayName || currentUser.email,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      aggregateCrowd(id);
-      showToast('Thanks!', 'Crowd report submitted.', '👥');
-    });
+    }).then(() => { aggregateCrowd(id); showToast('Thanks!', 'Crowd report submitted.', '👥'); });
   }
 
   function aggregateCrowd(id) {
@@ -1713,17 +1189,16 @@
   }
 
   // ════════════════════════════════════════
-  // 🔥 COMMENTS
+  // COMMENTS
   // ════════════════════════════════════════
   function toggleComments(id) {
     const el = document.getElementById(`cs-${id}`);
     if (el) el.classList.toggle('open');
   }
-
   function submitComment(id, row) {
     if (!currentUser || !row) return;
     const input = row.querySelector('input');
-    const text  = input ? input.value.trim() : '';
+    const text = input ? input.value.trim() : '';
     if (!text) return;
     db.collection('bus_timings').doc(id).collection('comments').add({
       user: currentUser.displayName || currentUser.email,
@@ -1733,16 +1208,13 @@
     }).then(() => { if (input) input.value = ''; })
       .catch(e => console.warn(e));
   }
-
-  // Handle Enter key in comment inputs
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.target.dataset.action === 'add-comment') {
-      const id  = e.target.dataset.id;
+      const id = e.target.dataset.id;
       const row = e.target.closest('.comment-row');
       submitComment(id, row);
     }
   });
-
   function loadComments(id) {
     db.collection('bus_timings').doc(id).collection('comments')
       .orderBy('timestamp','asc').onSnapshot(snap => {
@@ -1753,7 +1225,7 @@
   }
 
   // ════════════════════════════════════════
-  // 🔥 TOAST NOTIFICATIONS
+  // TOAST
   // ════════════════════════════════════════
   function showToast(title, body, icon = '🚌', isReminder = false, duration = 4000) {
     const container = document.getElementById('toastContainer');
@@ -1772,7 +1244,7 @@
   }
 
   // ════════════════════════════════════════
-  // 🔥 TABS
+  // TABS
   // ════════════════════════════════════════
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1786,7 +1258,7 @@
   });
 
   // ════════════════════════════════════════
-  // 🔥 FILTERS
+  // FILTERS
   // ════════════════════════════════════════
   $searchInput.addEventListener('input',  renderSchedule);
   $filterType.addEventListener('change',  renderSchedule);
@@ -1799,7 +1271,7 @@
   });
 
   // ════════════════════════════════════════
-  // 🔥 FIREBASE: SEED → FIRESTORE
+  // FIREBASE SEED SYNC & LISTENER
   // ════════════════════════════════════════
   async function syncSeedToFirestore() {
     try {
@@ -1824,9 +1296,6 @@
     } catch(e) { console.warn('Firestore seed check (offline?):', e.message); }
   }
 
-  // ════════════════════════════════════════
-  // 🔥 FIRESTORE LISTENER
-  // ════════════════════════════════════════
   function setupFirestoreListener() {
     db.collection('bus_timings').onSnapshot(snap => {
       const firestoreData = [];
@@ -1843,21 +1312,13 @@
           crowd: d.crowd || 'low',
         });
       });
-
       const firestoreIds = new Set(firestoreData.map(b => b.id));
-      const seedOnly     = SEED.filter(b => !firestoreIds.has(b.id));
-      allBuses           = [...firestoreData, ...seedOnly];
-
+      const seedOnly = SEED.filter(b => !firestoreIds.has(b.id));
+      allBuses = [...firestoreData, ...seedOnly];
       liveDataMap = {};
       allBuses.forEach(b => {
-        liveDataMap[b.id] = {
-          status:   b.liveStatus   || 'on-time',
-          location: b.liveLocation || '',
-          delay:    b.delay        || 0,
-          crowd:    b.crowd        || 'low',
-        };
+        liveDataMap[b.id] = { status: b.liveStatus || 'on-time', location: b.liveLocation || '', delay: b.delay || 0, crowd: b.crowd || 'low' };
       });
-
       firestoreReady = true;
       populateDropdowns();
       renderAll();
@@ -1873,36 +1334,27 @@
     });
   }
 
-  // ════════════════════════════════════════
-  // 🔥 ALERT LISTENER
-  // ════════════════════════════════════════
   function setupAlertListener() {
     db.collection('app_settings').doc('alert').onSnapshot(doc => {
       if (doc.exists && doc.data().message && doc.data().active) {
         $alertMsg.textContent = doc.data().message;
         $alertBar.classList.add('show');
-      } else {
-        $alertBar.classList.remove('show');
-      }
+      } else { $alertBar.classList.remove('show'); }
     }, e => console.warn('Alert listener:', e));
   }
-
   document.getElementById('closeAlertBtn').addEventListener('click', () => $alertBar.classList.remove('show'));
 
   // ════════════════════════════════════════
-  // 🔥 AUTH
+  // AUTH
   // ════════════════════════════════════════
   $loginBtn.addEventListener('click', () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).catch(e => showToast('Login Failed', e.message, '❌'));
   });
-
   $logoutBtn.addEventListener('click', () => auth.signOut());
-
   auth.onAuthStateChanged(user => {
     currentUser = user;
     isAdmin     = !!(user && user.email === ADMIN_EMAIL);
-
     if (user) {
       $loginBtn.classList.add('hidden');
       $logoutBtn.classList.remove('hidden');
@@ -1912,7 +1364,7 @@
         <span class="uname">${user.displayName || user.email}</span>
         ${isAdmin ? '<span style="color:var(--purple);font-size:0.65rem;">Admin</span>' : ''}`;
       if (isAdmin) $adminBtn.classList.remove('hidden');
-      else         $adminBtn.classList.add('hidden');
+      else $adminBtn.classList.add('hidden');
       if (firestoreReady) loadFavorites();
     } else {
       $loginBtn.classList.remove('hidden');
@@ -1925,7 +1377,7 @@
   });
 
   // ════════════════════════════════════════
-  // ⚙️ ADMIN PANEL
+  // ADMIN PANEL
   // ════════════════════════════════════════
   $adminBtn.addEventListener('click', () => {
     if (!isAdmin) return;
@@ -1950,21 +1402,19 @@
   function populateAdminSelects() {
     const sorted = [...allBuses].sort((a,b) => timeToMins(a.time) - timeToMins(b.time));
     const opts   = sorted.map(b => `<option value="${b.id}">${b.busNo} | ${b.from}→${b.to} | ${fmt12(b.time)}</option>`).join('');
-    const sel1 = document.getElementById('admEditSelect');
-    const sel2 = document.getElementById('admLiveSelect');
-    if (sel1) sel1.innerHTML = '<option value="">-- Choose a bus --</option>' + opts;
-    if (sel2) sel2.innerHTML = '<option value="">-- Choose a bus --</option>' + opts;
+    document.getElementById('admEditSelect').innerHTML = '<option value="">-- Choose a bus --</option>' + opts;
+    document.getElementById('admLiveSelect').innerHTML = '<option value="">-- Choose a bus --</option>' + opts;
   }
 
   document.getElementById('admEditSelect').addEventListener('change', function() {
     const bus = allBuses.find(b => b.id === this.value);
     if (!bus) return;
     document.getElementById('admEditBusNo').value = bus.busNo;
-    document.getElementById('admEditType').value   = bus.type;
-    document.getElementById('admEditFrom').value   = bus.from;
-    document.getElementById('admEditTo').value     = bus.to;
-    document.getElementById('admEditTime').value   = bus.time;
-    document.getElementById('admEditNotes').value  = bus.notes || '';
+    document.getElementById('admEditType').value  = bus.type;
+    document.getElementById('admEditFrom').value  = bus.from;
+    document.getElementById('admEditTo').value    = bus.to;
+    document.getElementById('admEditTime').value  = bus.time;
+    document.getElementById('admEditNotes').value = bus.notes || '';
   });
   document.getElementById('admLiveSelect').addEventListener('change', function() {
     const live = liveDataMap[this.value];
@@ -2007,8 +1457,7 @@
       to:    document.getElementById('admEditTo').value.trim(),
       time:  document.getElementById('admEditTime').value,
       notes: document.getElementById('admEditNotes').value.trim(),
-    }).then(() => showToast('Updated!', 'Bus has been updated.', '✅'))
-      .catch(e => alert(e.message));
+    }).then(() => showToast('Updated!', 'Bus has been updated.', '✅')).catch(e => alert(e.message));
   });
 
   document.getElementById('admDeleteBus').addEventListener('click', () => {
@@ -2016,8 +1465,7 @@
     const id = document.getElementById('admEditSelect').value;
     if (!id || !confirm('Delete this bus permanently?')) return;
     db.collection('bus_timings').doc(id).delete()
-      .then(() => showToast('Deleted!', 'Bus has been removed.', '🗑'))
-      .catch(e => alert(e.message));
+      .then(() => showToast('Deleted!', 'Bus has been removed.', '🗑')).catch(e => alert(e.message));
   });
 
   document.getElementById('admSetAlert').addEventListener('click', () => {
@@ -2035,8 +1483,7 @@
   document.getElementById('admClearAlert').addEventListener('click', () => {
     if (!isAdmin) return;
     db.collection('app_settings').doc('alert').update({ active: false })
-      .then(() => showToast('Alert Cleared!', 'Alert has been removed.', '✅'))
-      .catch(e => alert(e.message));
+      .then(() => showToast('Alert Cleared!', 'Alert has been removed.', '✅')).catch(e => alert(e.message));
   });
 
   document.getElementById('admSaveLive').addEventListener('click', () => {
@@ -2048,8 +1495,7 @@
       liveLocation: document.getElementById('admLiveLocation').value.trim(),
       delay:        parseInt(document.getElementById('admLiveDelay').value) || 0,
       crowd:        document.getElementById('admLiveCrowd').value,
-    }).then(() => showToast('Live Updated!', 'Live data saved.', '📍'))
-      .catch(e => alert(e.message));
+    }).then(() => showToast('Live Updated!', 'Live data saved.', '📍')).catch(e => alert(e.message));
   });
 
   ['admCancelAdd','admCancelEdit','admCancelLive'].forEach(id => {
@@ -2057,19 +1503,50 @@
   });
 
   // ════════════════════════════════════════
-  // 🔥 INIT
+  // NETWORK DETECTION
+  // ════════════════════════════════════════
+  function updateOnlineStatus() {
+    document.body.classList.toggle('offline', !navigator.onLine);
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
+
+  // ════════════════════════════════════════
+  // DARK / LIGHT MODE TOGGLE
+  // ════════════════════════════════════════
+  function initTheme() {
+    const saved = localStorage.getItem('cmsr_theme');
+    if (saved === 'light') {
+      document.body.classList.add('light-mode');
+      $themeToggle.textContent = '☀️';
+    } else if (saved === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.remove('light-mode');
+      $themeToggle.textContent = '🌙';
+    }
+  }
+  function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    const isLight = document.body.classList.contains('light-mode');
+    localStorage.setItem('cmsr_theme', isLight ? 'light' : 'dark');
+    $themeToggle.textContent = isLight ? '☀️' : '🌙';
+  }
+  $themeToggle.addEventListener('click', toggleTheme);
+  initTheme();
+
+  // ════════════════════════════════════════
+  // INIT
   // ════════════════════════════════════════
   async function init() {
     populateDropdowns();
-    renderAll();                    // Immediate render from SEED
-    scheduleAllReminders();         // Restore saved reminders
-    requestNotifPermission();       // Ask permission early
+    renderAll();
+    scheduleAllReminders();
+    requestNotifPermission();
 
-    await syncSeedToFirestore();    // Upload SEED if Firestore is empty
-    setupFirestoreListener();       // Real-time listener
+    await syncSeedToFirestore();
+    setupFirestoreListener();
     setupAlertListener();
 
-    // Refresh every minute for countdown updates
     setInterval(() => {
       updateHero();
       if (activeTab === 'schedule')   renderSchedule();
