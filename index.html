@@ -503,6 +503,7 @@
     CMSR<span>Bus</span>
   </div>
   <div class="header-right">
+    <span id="istClock" style="font-size:0.72rem;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;letter-spacing:0.3px;white-space:nowrap;" title="Indian Standard Time (UTC+5:30)">IST --:-- --</span>
     <button class="btn sm" id="themeToggle" title="Toggle theme">🌓</button>
     <div id="userChip" class="user-chip hidden"></div>
     <button id="loginBtn" class="btn outline sm">🔐 Sign in</button>
@@ -681,53 +682,53 @@
   // SEED DATA — Do not alter, remove, or regenerate
   // ════════════════════════════════════════
   const SEED = [
-    { id:'s1',  busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'07:00', notes:'Morning via KTC',                                            addedBy:'raju', verified:[] },
-    { id:'s2',  busNo:'4209',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:00', notes:'',                                                           addedBy:'raju', verified:[] },
-    { id:'s3',  busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:15', notes:'',                                                           addedBy:'raju', verified:['a','b','c','d','e'] },
-    { id:'s4',  busNo:'1747',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:44', notes:'Flacy Route',                                                addedBy:'raju', verified:[] },
-    { id:'s5',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:15', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:['a','b','c'] },
-    { id:'s6',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:36', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:[] },
-    { id:'s7',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:30', notes:'Bus no. not confirmed yet ✏️',                               addedBy:'raju', verified:[] },
-    { id:'s8',  busNo:'4209',        type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:55', notes:'✅ Bus 4209 confirmed',                                      addedBy:'raju', verified:['x','y'] },
-    { id:'s9',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'13:30', notes:'⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus',           addedBy:'raju', verified:['a','b','c','d','e','f'] },
-    { id:'s10', busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'14:40', notes:'Last College→Kamat bus',                                    addedBy:'raju', verified:[] },
-    { id:'s11', busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'11:38', notes:'',                                                           addedBy:'raju', verified:[] },
-    { id:'s12', busNo:'9424',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'12:47', notes:'',                                                           addedBy:'raju', verified:[] },
-    { id:'s13', busNo:'4209',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:42', notes:'',                                                           addedBy:'raju', verified:[] },
-    { id:'s14', busNo:'1747',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:50', notes:'⚡ Tight if catching 1:30 bus',                              addedBy:'raju', verified:[] },
-    { id:'s15', busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'14:10', notes:'✅ Safe after 1:30 college bus',                             addedBy:'raju', verified:['a','b','c'] },
-    { id:'s16', busNo:'KTC',         type:'ktc',      from:'Varca',                     to:'KTC Bus Stand',            time:'07:00', notes:'Morning KTC service',                                        addedBy:'raju', verified:[] },
-    { id:'s17', busNo:'KTC',         type:'ktc',      from:'KTC Bus Stand',             to:'Margao',                   time:'08:30', notes:'',                                                           addedBy:'raju', verified:[] },
-    { id:'s18', busNo:'7721',        type:'general',  from:'ACMSR College',             to:'Margao',                   time:'13:00', notes:'Via Navelim',                                                addedBy:'raju', verified:[] },
-    { id:'s20', busNo:'5463',        type:'general',  from:'ACMSR College',             to:'Kamat',                    time:'16:40', notes:'Evening bus',                                                addedBy:'raju', verified:[] },
-    { id:'s21', busNo:'MOB1',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'07:30', notes:'Arrives Margao ~8:40 AM',                                   addedBy:'raju', verified:[] },
-    { id:'s22', busNo:'MOB2',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'09:55', notes:'Arrives Margao ~11:30 AM',                                  addedBy:'raju', verified:[] },
-    { id:'s23', busNo:'MOB3',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'13:05', notes:'Arrives Margao ~3:00 PM',                                   addedBy:'raju', verified:[] },
-    { id:'s24', busNo:'MOB4',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'16:45', notes:'Arrives Margao ~5:50 PM',                                   addedBy:'raju', verified:[] },
-    { id:'s25', busNo:'MOB1',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'08:40', notes:'Departs after 7:30 AM Mobor bus',                           addedBy:'raju', verified:[] },
-    { id:'s26', busNo:'MOB2',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'11:30', notes:'Departs after 9:55 AM Mobor bus',                           addedBy:'raju', verified:[] },
-    { id:'s27', busNo:'MOB3',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'15:00', notes:'Departs after 1:05 PM Mobor bus',                           addedBy:'raju', verified:[] },
-    { id:'s28', busNo:'MOB4',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'17:50', notes:'Departs after 4:45 PM Mobor bus',                           addedBy:'raju', verified:[] },
-    { id:'s43', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'11:38', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
-    { id:'s44', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'12:47', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
-    { id:'s45', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:42', notes:'Via Benaulim & Cavelossim',                                 addedBy:'raju', verified:[] },
-    { id:'s46', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:50', notes:'⚡ Tight — only if 1:30 PM college bus on time',            addedBy:'raju', verified:[] },
-    { id:'s47', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'14:10', notes:'✅ Safe connection after 1:30 PM College bus',               addedBy:'raju', verified:[] },
-    { id:'s29', busNo:'MRG-69',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:15', notes:'Arrives KTC ~7:30 AM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
-    { id:'s32', busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:50', notes:'Arrives KTC ~9:05 AM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
-    { id:'s35', busNo:'MRG-374MB',   type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'12:10', notes:'Arrives KTC ~12:25 PM · Kadamba govt bus',                 addedBy:'raju', verified:[] },
-    { id:'s38', busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'14:20', notes:'Arrives KTC ~2:35 PM · Kadamba govt bus (2nd trip)',       addedBy:'raju', verified:[] },
-    { id:'s41', busNo:'MRG-66',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'16:30', notes:'Arrives KTC ~4:45 PM · Kadamba govt bus',                  addedBy:'raju', verified:[] },
-    { id:'s30', busNo:'PVT-CUR01',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:45', notes:'Arrives KTC ~8:00 AM · via Curtorim',                      addedBy:'raju', verified:[] },
-    { id:'s31', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:21', notes:'Arrives KTC ~8:35 AM · via Panaji route',                  addedBy:'raju', verified:[] },
-    { id:'s33', busNo:'PVT-MAI05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'09:15', notes:'Arrives KTC ~9:30 AM · via Maina',                         addedBy:'raju', verified:[] },
-    { id:'s34', busNo:'PVT-CUR02',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'10:30', notes:'Arrives KTC ~10:45 AM · via Curtorim',                     addedBy:'raju', verified:[] },
-    { id:'s36', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:15', notes:'Arrives KTC ~1:30 PM · via Panaji route (2nd)',            addedBy:'raju', verified:[] },
-    { id:'s37', busNo:'PVT-CUR03',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:45', notes:'Arrives KTC ~2:00 PM · via Curtorim',                      addedBy:'raju', verified:[] },
-    { id:'s39', busNo:'PVT-MAI08',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'15:45', notes:'Arrives KTC ~4:00 PM · via Maina',                         addedBy:'raju', verified:[] },
-    { id:'s40', busNo:'PVT-CUR04',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'17:15', notes:'Arrives KTC ~5:30 PM · via Curtorim',                      addedBy:'raju', verified:[] },
-    { id:'s42', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'18:10', notes:'Arrives KTC ~6:25 PM · via Panaji route (3rd)',            addedBy:'raju', verified:[] },
-    { id:'s43b',busNo:'PVT-CUR05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'19:00', notes:'Arrives KTC ~7:15 PM · via Curtorim',                      addedBy:'raju', verified:[] },
+    { id:'s1',  busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'07:00', notes:'Morning via KTC',                                            verified:[] },
+    { id:'s2',  busNo:'4209',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:00', notes:'',                                                           verified:[] },
+    { id:'s3',  busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:15', notes:'',                                                           verified:['a','b','c','d','e'] },
+    { id:'s4',  busNo:'1747',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:44', notes:'Flacy Route',                                                verified:[] },
+    { id:'s5',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:15', notes:'Bus no. not confirmed yet ✏️',                               verified:['a','b','c'] },
+    { id:'s6',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:36', notes:'Bus no. not confirmed yet ✏️',                               verified:[] },
+    { id:'s7',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:30', notes:'Bus no. not confirmed yet ✏️',                               verified:[] },
+    { id:'s8',  busNo:'4209',        type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:55', notes:'✅ Bus 4209 confirmed',                                      verified:['x','y'] },
+    { id:'s9',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'13:30', notes:'⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus',           verified:['a','b','c','d','e','f'] },
+    { id:'s10', busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'14:40', notes:'Last College→Kamat bus',                                    verified:[] },
+    { id:'s11', busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'11:38', notes:'',                                                           verified:[] },
+    { id:'s12', busNo:'9424',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'12:47', notes:'',                                                           verified:[] },
+    { id:'s13', busNo:'4209',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:42', notes:'',                                                           verified:[] },
+    { id:'s14', busNo:'1747',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:50', notes:'⚡ Tight if catching 1:30 bus',                              verified:[] },
+    { id:'s15', busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'14:10', notes:'✅ Safe after 1:30 college bus',                             verified:['a','b','c'] },
+    { id:'s16', busNo:'KTC',         type:'ktc',      from:'Varca',                     to:'KTC Bus Stand',            time:'07:00', notes:'Morning KTC service',                                        verified:[] },
+    { id:'s17', busNo:'KTC',         type:'ktc',      from:'KTC Bus Stand',             to:'Margao',                   time:'08:30', notes:'',                                                           verified:[] },
+    { id:'s18', busNo:'7721',        type:'general',  from:'ACMSR College',             to:'Margao',                   time:'13:00', notes:'Via Navelim',                                                verified:[] },
+    { id:'s20', busNo:'5463',        type:'general',  from:'ACMSR College',             to:'Kamat',                    time:'16:40', notes:'Evening bus',                                                verified:[] },
+    { id:'s21', busNo:'MOB1',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'07:30', notes:'Arrives Margao ~8:40 AM',                                   verified:[] },
+    { id:'s22', busNo:'MOB2',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'09:55', notes:'Arrives Margao ~11:30 AM',                                  verified:[] },
+    { id:'s23', busNo:'MOB3',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'13:05', notes:'Arrives Margao ~3:00 PM',                                   verified:[] },
+    { id:'s24', busNo:'MOB4',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'16:45', notes:'Arrives Margao ~5:50 PM',                                   verified:[] },
+    { id:'s25', busNo:'MOB1',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'08:40', notes:'Departs after 7:30 AM Mobor bus',                           verified:[] },
+    { id:'s26', busNo:'MOB2',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'11:30', notes:'Departs after 9:55 AM Mobor bus',                           verified:[] },
+    { id:'s27', busNo:'MOB3',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'15:00', notes:'Departs after 1:05 PM Mobor bus',                           verified:[] },
+    { id:'s28', busNo:'MOB4',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'17:50', notes:'Departs after 4:45 PM Mobor bus',                           verified:[] },
+    { id:'s43', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'11:38', notes:'Via Benaulim & Cavelossim',                                 verified:[] },
+    { id:'s44', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'12:47', notes:'Via Benaulim & Cavelossim',                                 verified:[] },
+    { id:'s45', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:42', notes:'Via Benaulim & Cavelossim',                                 verified:[] },
+    { id:'s46', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:50', notes:'⚡ Tight — only if 1:30 PM college bus on time',            verified:[] },
+    { id:'s47', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'14:10', notes:'✅ Safe connection after 1:30 PM College bus',               verified:[] },
+    { id:'s29', busNo:'MRG-69',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:15', notes:'Arrives KTC ~7:30 AM · Kadamba govt bus',                  verified:[] },
+    { id:'s32', busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:50', notes:'Arrives KTC ~9:05 AM · Kadamba govt bus',                  verified:[] },
+    { id:'s35', busNo:'MRG-374MB',   type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'12:10', notes:'Arrives KTC ~12:25 PM · Kadamba govt bus',                 verified:[] },
+    { id:'s38', busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'14:20', notes:'Arrives KTC ~2:35 PM · Kadamba govt bus (2nd trip)',       verified:[] },
+    { id:'s41', busNo:'MRG-66',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'16:30', notes:'Arrives KTC ~4:45 PM · Kadamba govt bus',                  verified:[] },
+    { id:'s30', busNo:'PVT-CUR01',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:45', notes:'Arrives KTC ~8:00 AM · via Curtorim',                      verified:[] },
+    { id:'s31', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:21', notes:'Arrives KTC ~8:35 AM · via Panaji route',                  verified:[] },
+    { id:'s33', busNo:'PVT-MAI05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'09:15', notes:'Arrives KTC ~9:30 AM · via Maina',                         verified:[] },
+    { id:'s34', busNo:'PVT-CUR02',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'10:30', notes:'Arrives KTC ~10:45 AM · via Curtorim',                     verified:[] },
+    { id:'s36', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:15', notes:'Arrives KTC ~1:30 PM · via Panaji route (2nd)',            verified:[] },
+    { id:'s37', busNo:'PVT-CUR03',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:45', notes:'Arrives KTC ~2:00 PM · via Curtorim',                      verified:[] },
+    { id:'s39', busNo:'PVT-MAI08',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'15:45', notes:'Arrives KTC ~4:00 PM · via Maina',                         verified:[] },
+    { id:'s40', busNo:'PVT-CUR04',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'17:15', notes:'Arrives KTC ~5:30 PM · via Curtorim',                      verified:[] },
+    { id:'s42', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'18:10', notes:'Arrives KTC ~6:25 PM · via Panaji route (3rd)',            verified:[] },
+    { id:'s43b',busNo:'PVT-CUR05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'19:00', notes:'Arrives KTC ~7:15 PM · via Curtorim',                      verified:[] },
   ];
 
   // ════════════════════════════════════════
@@ -773,24 +774,73 @@
   const $themeToggle  = document.getElementById('themeToggle');
 
   // ════════════════════════════════════════
-  // TIME HELPERS
+  // ⏰ IST TIME ENGINE  (UTC+5:30 always)
+  //    Works correctly regardless of device
+  //    timezone or system clock offset.
   // ════════════════════════════════════════
-  function nowMinutes() {
-    const d = new Date();
-    return d.getHours() * 60 + d.getMinutes();
+
+  // Returns a Date object forced to IST from UTC
+  function istNow() {
+    const utcMs  = Date.now();
+    const istMs  = utcMs + (5 * 60 + 30) * 60 * 1000; // +5h30m in ms
+    return new Date(istMs);          // internal value is IST but named as UTC
   }
+
+  // IST hours and minutes right now
+  function istHHMM() {
+    const d = istNow();
+    return { h: d.getUTCHours(), m: d.getUTCMinutes(), s: d.getUTCSeconds() };
+  }
+
+  // Minutes since midnight IST
+  function nowMinutes() {
+    const { h, m } = istHHMM();
+    return h * 60 + m;
+  }
+
+  // Seconds since midnight IST  (for precise scheduling)
+  function nowSeconds() {
+    const { h, m, s } = istHHMM();
+    return h * 3600 + m * 60 + s;
+  }
+
+  // Milliseconds until a specific HH:MM (IST) today;
+  // returns negative if already past
+  function msUntilIST(hhmm) {
+    const [bh, bm] = hhmm.split(':').map(Number);
+    const busSec   = bh * 3600 + bm * 60;
+    const nowSec   = nowSeconds();
+    return (busSec - nowSec) * 1000;   // exact ms, can be negative
+  }
+
+  // Same but returns ms until TOMORROW's HH:MM if today's has passed
+  function msUntilISTOrTomorrow(hhmm) {
+    let ms = msUntilIST(hhmm);
+    if (ms <= 0) ms += 24 * 3600 * 1000;  // add one day
+    return ms;
+  }
+
   function timeToMins(hhmm) {
     const [h,m] = hhmm.split(':').map(Number);
     return h * 60 + m;
   }
+
+  // Whole minutes remaining until HH:MM (IST)
   function minsUntil(hhmm) {
-    return timeToMins(hhmm) - nowMinutes();
+    return Math.ceil(msUntilIST(hhmm) / 60000);
   }
+
   function fmt12(hhmm) {
     const [h,m] = hhmm.split(':').map(Number);
     const ampm = h >= 12 ? 'PM' : 'AM';
     const h12  = h % 12 || 12;
     return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+
+  // Current IST time as HH:MM string
+  function nowISTStr() {
+    const { h, m } = istHHMM();
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
   }
 
   // ════════════════════════════════════════
@@ -1077,33 +1127,90 @@
     }
   }
 
+  // ════════════════════════════════════════
+  // 🔔 PRECISION REMINDER SCHEDULER (IST)
+  //
+  //  Strategy:
+  //  • For each active reminder, compute exact ms until
+  //    (bus departure time - lead minutes) in IST.
+  //  • Set a millisecond-accurate setTimeout.
+  //  • After firing, daily reminders reschedule for
+  //    the same time TOMORROW (+ 24 h).
+  //  • Every 30 s we also re-run scheduleAllReminders()
+  //    to self-correct any drift.
+  // ════════════════════════════════════════
+
   function scheduleAllReminders() {
-    Object.values(reminderTimers).forEach(clearTimeout);
+    // Clear all existing pending timers first
+    Object.values(reminderTimers).forEach(t => { clearTimeout(t.id); });
     reminderTimers = {};
-    const now = nowMinutes();
+
     Object.entries(reminders).forEach(([busId, rem]) => {
-      const bus = allBuses.find(b => b.id === busId);
+      const bus = allBuses.find(b => b.id === busId) || rem.busData;
       if (!bus) return;
-      const triggerAt = timeToMins(bus.time) - rem.leadMins;
-      let msUntil = (triggerAt - now) * 60 * 1000;
-      if (msUntil <= 0) return;
-      reminderTimers[busId] = setTimeout(() => {
+
+      // Build a virtual HH:MM string shifted back by leadMins
+      const busMins      = timeToMins(bus.time);
+      const triggerMins  = busMins - rem.leadMins;
+      const tH           = Math.floor(triggerMins / 60);
+      const tM           = triggerMins % 60;
+      const triggerHHMM  = `${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}`;
+
+      let msLeft = msUntilIST(triggerHHMM);
+
+      // If trigger time already passed today, schedule for tomorrow (daily only)
+      if (msLeft <= -60000) {
+        if (rem.repeat === 'once') return;   // don't reschedule once-only past reminders
+        msLeft += 24 * 3600 * 1000;          // tomorrow same time
+      } else if (msLeft <= 0) {
+        // Within the last minute — fire immediately (missed by small window)
+        msLeft = 500;
+      }
+
+      const timerId = setTimeout(() => {
         fireReminder(bus, rem.leadMins);
+
         if (rem.repeat === 'once') {
           delete reminders[busId];
           localStorage.setItem('cmsrReminders', JSON.stringify(reminders));
           renderAll();
+        } else {
+          // Daily: reschedule for next occurrence (24 h from trigger)
+          const nextMs = 24 * 3600 * 1000;
+          const nextId = setTimeout(() => scheduleAllReminders(), nextMs);
+          reminderTimers[busId] = { id: nextId, fireAt: triggerHHMM, busId };
         }
-      }, msUntil);
+      }, msLeft);
+
+      reminderTimers[busId] = { id: timerId, fireAt: triggerHHMM, busId,
+                                msLeft, scheduledAt: Date.now() };
+
+      console.log(`[IST Scheduler] Bus ${bus.busNo} (${bus.time}): reminder fires in ${Math.round(msLeft/1000)}s (IST trigger: ${triggerHHMM})`);
     });
   }
 
   function fireReminder(bus, leadMins) {
-    const title = `🚌 Bus ${bus.busNo} in ${leadMins} min!`;
-    const body  = `${bus.from} → ${bus.to} departs at ${fmt12(bus.time)}. Get ready!`;
+    const { h, m } = istHHMM();
+    const nowStr   = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    const title    = `🚌 Bus ${bus.busNo} in ${leadMins} min!`;
+    const body     = `${bus.from} → ${bus.to} departs at ${fmt12(bus.time)} IST. Get ready now!`;
+
+    console.log(`[IST Reminder FIRED] ${title} — IST now: ${nowStr}`);
+
+    // Browser push notification
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body, icon: '🚌', tag: `bus-${bus.id}` });
+      try {
+        new Notification(title, {
+          body,
+          icon: 'https://api.iconify.design/emojione/bus.svg',
+          tag:  `cmsr-bus-${bus.id}`,
+          requireInteraction: true,   // stays until user dismisses
+          vibrate: [200, 100, 200]
+        });
+      } catch(e) { console.warn('Notification error:', e); }
     }
+
+    // In-app toast (10 s timeout)
     showToast(title, body, '🚌', true, 10000);
   }
 
@@ -1283,7 +1390,7 @@
           const ref = db.collection('bus_timings').doc(bus.id);
           batch.set(ref, {
             busNo: bus.busNo, type: bus.type, from: bus.from, to: bus.to,
-            time: bus.time, notes: bus.notes, addedBy: bus.addedBy,
+            time: bus.time, notes: bus.notes, addedBy: (bus.addedBy || '').includes('raju') ? 'admin' : (bus.addedBy || ''),
             verified: bus.verified || [],
             liveStatus: 'on-time', liveLocation: '', delay: 0,
             crowd: 'low', crowdReportCount: 0,
@@ -1304,7 +1411,7 @@
         firestoreData.push({
           id: doc.id, busNo: d.busNo, type: d.type,
           from: d.from, to: d.to, time: d.time,
-          notes: d.notes || '', addedBy: d.addedBy || 'raju',
+          notes: d.notes || '', addedBy: d.addedBy || '',
           verified: d.verified || [],
           liveStatus: d.liveStatus || 'on-time',
           liveLocation: d.liveLocation || '',
@@ -1365,7 +1472,7 @@
         ${isAdmin ? '<span style="color:var(--purple);font-size:0.65rem;">Admin</span>' : ''}`;
       if (isAdmin) $adminBtn.classList.remove('hidden');
       else $adminBtn.classList.add('hidden');
-      if (firestoreReady) loadFavorites();
+      loadFavorites();
     } else {
       $loginBtn.classList.remove('hidden');
       $logoutBtn.classList.add('hidden');
@@ -1535,6 +1642,21 @@
   initTheme();
 
   // ════════════════════════════════════════
+  // ⏰ IST CLOCK DISPLAY (header)
+  // ════════════════════════════════════════
+  function updateISTClock() {
+    const { h, m, s } = istHHMM();
+    const clockEl = document.getElementById('istClock');
+    if (!clockEl) return;
+    const hh = String(h).padStart(2,'0');
+    const mm = String(m).padStart(2,'0');
+    const ss = String(s).padStart(2,'0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12  = h % 12 || 12;
+    clockEl.textContent = `IST ${h12}:${mm}:${ss} ${ampm}`;
+  }
+
+  // ════════════════════════════════════════
   // INIT
   // ════════════════════════════════════════
   async function init() {
@@ -1547,13 +1669,26 @@
     setupFirestoreListener();
     setupAlertListener();
 
+    // ── Per-second ticker ─────────────────
+    // Updates hero countdown ring every second for smooth animation.
+    // Also updates card "X min left" labels every 30 s.
+    let secondTick = 0;
     setInterval(() => {
+      secondTick++;
       updateHero();
-      if (activeTab === 'schedule')   renderSchedule();
-      if (activeTab === 'favorites')  renderFavorites();
-    }, 60 * 1000);
+      updateISTClock();
 
-    console.log('🚌 CMSRBus initialized | SEED:', SEED.length, 'routes | Admin:', ADMIN_EMAIL);
+      // Every 30 seconds: refresh cards + re-align reminders (drift correction)
+      if (secondTick % 30 === 0) {
+        if (activeTab === 'schedule')  renderSchedule();
+        if (activeTab === 'favorites') renderFavorites();
+        renderRemindersList();
+        // Re-schedule to correct any timer drift
+        scheduleAllReminders();
+      }
+    }, 1000);  // every 1 second
+
+    console.log(`🚌 CMSRBus initialized | IST: ${nowISTStr()} | SEED: ${SEED.length} routes | Admin: ${ADMIN_EMAIL}`);
   }
 
   init();
