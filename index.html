@@ -490,6 +490,53 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+    /* Clean, modern auth/settings modals styling */
+    #authModal input, #reportLiveModal input, #reportLiveModal select {
+      width: 100%;
+      padding: 10px 13px;
+      border-radius: var(--radiusSm);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      margin-top: 4px;
+      margin-bottom: 12px;
+    }
+    body.light-mode #authModal input, body.light-mode #reportLiveModal input, body.light-mode #reportLiveModal select {
+      background: rgba(0, 0, 0, 0.03);
+      color: var(--text);
+    }
+    #authModal input:focus, #reportLiveModal input:focus, #reportLiveModal select:focus {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 0 0 3px var(--accentGlow);
+    }
+    body.light-mode #authModal input:focus, body.light-mode #reportLiveModal input:focus, body.light-mode #reportLiveModal select:focus {
+      background: rgba(0, 0, 0, 0.01);
+    }
+    #authModal label, #reportLiveModal label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--text2);
+      margin-top: 8px;
+    }
+    .pending-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.65rem;
+      background: var(--yellowDim);
+      color: var(--yellow);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -503,12 +550,13 @@
     CMSR<span>Bus</span>
   </div>
   <div class="header-right">
-    <span id="istClock" style="font-size:0.72rem;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;letter-spacing:0.3px;white-space:nowrap;" title="Indian Standard Time (UTC+5:30)">IST --:-- --</span>
+    <span id="istClock" style="font-size:0.72rem;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;letter-spacing:0.3px;white-space:nowrap;" title="Local System Time">--:-- --</span>
     <button class="btn sm" id="themeToggle" title="Toggle theme">🌓</button>
     <div id="userChip" class="user-chip hidden"></div>
     <button id="loginBtn" class="btn outline sm">🔐 Sign in</button>
     <button id="logoutBtn" class="btn sm hidden">Sign Out</button>
-    <button id="adminBtn" class="btn sm hidden" style="background:var(--purpleDim);border-color:rgba(168,85,247,0.4);color:var(--purple);">⚙️ Admin</button>
+    <button id="addBusBtn" class="btn sm hidden" style="background:var(--accentGlow);border-color:rgba(61,142,248,0.4);color:var(--accent);">➕ Add Timing</button>
+    <button id="adminBtn" class="btn sm hidden" style="background:var(--purpleDim);border-color:rgba(168,85,247,0.4);color:var(--purple);">⚙️ Admin Panel</button>
   </div>
 </header>
 
@@ -611,40 +659,58 @@
 
 <div id="adminModal" class="modal-overlay hidden">
   <div class="modal" style="max-width:520px;">
-    <h3>⚙️ Admin Panel</h3>
-    <div class="admin-tabs" style="margin-top:14px;">
+    <h3 id="panelTitle">⚙️ Bus Panel</h3>
+    <div class="admin-tabs" style="margin-top:14px;" id="adminTabsGroup">
       <button class="admin-tab-btn active" data-atab="add">➕ Add Bus</button>
-      <button class="admin-tab-btn" data-atab="edit">✏️ Edit Bus</button>
-      <button class="admin-tab-btn" data-atab="alerts">🚨 Alerts</button>
-      <button class="admin-tab-btn" data-atab="live">📍 Live Update</button>
+      <button class="admin-tab-btn" data-atab="edit" id="tabBtnEdit">✏️ Edit Bus</button>
+      <button class="admin-tab-btn" data-atab="alerts" id="tabBtnAlerts">🚨 Alerts</button>
+      <button class="admin-tab-btn" data-atab="live" id="tabBtnLive">📍 Live Update</button>
+      <button class="admin-tab-btn" data-atab="approvals" id="tabBtnApprovals">✅ Approvals <span id="approvalBadge" class="hidden" style="background:var(--red);color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:10px;"></span></button>
     </div>
 
+    <!-- Add Bus -->
     <div id="atab-add" class="admin-section active">
       <label>Bus Number</label><input type="text" id="admAddBusNo" placeholder="e.g. 9424">
-      <label>Type</label><select id="admAddType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
-      <label>From</label><input type="text" id="admAddFrom" placeholder="Origin">
-      <label>To</label><input type="text" id="admAddTo" placeholder="Destination">
+      <label>Type</label>
+      <select id="admAddType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
+      <label>Route</label>
+      <select id="admAddRoute">
+        <option value="CMSR-KTC">CMSR to KTC</option>
+        <option value="CMSR-Kamat">CMSR to Kamat</option>
+        <option value="KTC-Varca">KTC to Varca</option>
+      </select>
       <label>Time (HH:MM)</label><input type="time" id="admAddTime">
       <label>Notes</label><textarea id="admAddNotes" placeholder="Optional notes..."></textarea>
-      <div class="btn-row"><button class="btn sm" id="admCancelAdd">Cancel</button><button class="btn sm green-btn" id="admSaveAdd">Save Bus</button></div>
+      <div class="btn-row">
+        <button class="btn sm" id="admCancelAdd">Cancel</button>
+        <button class="btn sm green-btn" id="admSaveAdd">Save Bus</button>
+      </div>
     </div>
 
+    <!-- Edit Bus -->
     <div id="atab-edit" class="admin-section">
       <label>Select Bus</label><select id="admEditSelect"><option value="">-- Choose a bus --</option></select>
       <label>Bus Number</label><input type="text" id="admEditBusNo">
-      <label>Type</label><select id="admEditType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
-      <label>From</label><input type="text" id="admEditFrom">
-      <label>To</label><input type="text" id="admEditTo">
+      <label>Type</label>
+      <select id="admEditType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
+      <label>Route</label>
+      <select id="admEditRoute">
+        <option value="CMSR-KTC">CMSR to KTC</option>
+        <option value="CMSR-Kamat">CMSR to Kamat</option>
+        <option value="KTC-Varca">KTC to Varca</option>
+      </select>
       <label>Time (HH:MM)</label><input type="time" id="admEditTime">
       <label>Notes</label><textarea id="admEditNotes"></textarea>
       <div class="btn-row"><button class="btn sm danger" id="admDeleteBus">🗑 Delete</button><button class="btn sm" id="admCancelEdit">Cancel</button><button class="btn sm green-btn" id="admSaveEdit">Update</button></div>
     </div>
 
+    <!-- Alerts -->
     <div id="atab-alerts" class="admin-section">
       <label>Alert Message (shown to all users)</label><input type="text" id="admAlertMsg" placeholder="e.g. Bus 9424 delayed by 20 min today">
       <div class="btn-row"><button class="btn sm danger" id="admClearAlert">Clear Alert</button><button class="btn sm accent" id="admSetAlert">Set Alert</button></div>
     </div>
 
+    <!-- Live Update -->
     <div id="atab-live" class="admin-section">
       <label>Select Bus</label><select id="admLiveSelect"><option value="">-- Choose a bus --</option></select>
       <label>Live Status</label><select id="admLiveStatus"><option value="on-time">On Time</option><option value="delayed">Delayed</option><option value="early">Early</option></select>
@@ -654,7 +720,124 @@
       <div class="btn-row"><button class="btn sm" id="admCancelLive">Cancel</button><button class="btn sm green-btn" id="admSaveLive">Update Live Data</button></div>
     </div>
 
+    <!-- Approvals -->
+    <div id="atab-approvals" class="admin-section">
+      <h4 style="font-size:0.9rem; font-weight:700; margin-bottom:10px; color:#fff;">Pending Timings</h4>
+      <div id="pendingApprovalsList" style="display:grid; gap:10px; max-height: 300px; overflow-y: auto;">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+
     <button class="btn sm" style="width:100%;margin-top:14px;justify-content:center;" id="adminCloseBtn">Close Panel</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     AUTH MODAL
+══════════════════════════════════════ -->
+<div id="authModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:400px; padding: 32px;">
+    <div style="text-align:center; margin-bottom: 24px;">
+      <div style="font-size: 2.5rem; margin-bottom: 8px;">🚌</div>
+      <h3 style="font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 4px;">Welcome to CMSR Bus</h3>
+      <p style="font-size: 0.82rem; color: var(--text2);">Sign in to access reminders, favorites, and report bus timings.</p>
+    </div>
+
+    <!-- Google Login (Default) -->
+    <button id="authGoogleBtn" class="btn accent" style="width: 100%; justify-content: center; height: 44px; margin-bottom: 16px;">
+      <svg style="width:18px; height:18px; margin-right:8px;" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" color="#4285F4"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" color="#34A853"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" color="#FBBC05"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" color="#EA4335"/></svg>
+      Sign in with Google
+    </button>
+
+    <div style="display:flex; align-items:center; margin: 20px 0; color: var(--text3); font-size:0.75rem;">
+      <hr style="flex:1; border:none; border-top:1px solid var(--border);"/>
+      <span style="padding:0 10px; white-space:nowrap;">OR EMAIL LOGIN</span>
+      <hr style="flex:1; border:none; border-top:1px solid var(--border);"/>
+    </div>
+
+    <!-- Email Login / Register View -->
+    <div id="emailAuthView">
+      <div id="authInputs">
+        <label>Email Address</label>
+        <input type="email" id="authEmail" placeholder="name@domain.com">
+        
+        <div id="authPasswordGroup">
+          <label style="display:flex; justify-content:space-between;">
+            <span>Password</span>
+            <a href="#" id="authForgotBtn" style="color:var(--accent); font-size:0.75rem; text-decoration:none;">Forgot Password?</a>
+          </label>
+          <input type="password" id="authPassword" placeholder="••••••••">
+        </div>
+      </div>
+
+      <button id="authSubmitBtn" class="btn outline" style="width:100%; justify-content:center; height:44px; margin-bottom:12px;">
+        Sign In with Email
+      </button>
+
+      <div style="text-align:center; font-size:0.8rem; color:var(--text2);">
+        <span id="authToggleText">Don't have an account?</span>
+        <a href="#" id="authToggleBtn" style="color:var(--accent); text-decoration:none; font-weight:600; margin-left:4px;">Sign Up</a>
+      </div>
+    </div>
+
+    <!-- Forgot Password View -->
+    <div id="forgotPasswordView" class="hidden">
+      <label>Enter your email address</label>
+      <input type="email" id="resetEmail" placeholder="name@domain.com">
+      
+      <button id="authResetSubmitBtn" class="btn accent" style="width:100%; justify-content:center; height:44px; margin-bottom:12px;">
+        Send Reset Link
+      </button>
+
+      <div style="text-align:center; font-size:0.8rem;">
+        <a href="#" id="authBackToLoginBtn" style="color:var(--accent); text-decoration:none; font-weight:600;">Back to Login</a>
+      </div>
+    </div>
+
+    <button class="btn sm" style="width:100%; margin-top:20px; justify-content:center; background:none; border:none; color:var(--text3);" id="authCloseBtn">Close</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     REPORT LIVE / SETTINGS MODAL
+══════════════════════════════════════ -->
+<div id="reportLiveModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:400px;">
+    <h3>⚙️ Bus Settings &amp; Reporting</h3>
+    <p class="modal-sub" id="reportLiveModalSub">Bus Timing Details</p>
+    
+    <div style="margin-bottom:14px;">
+      <button class="btn sm green-btn" id="reportVerifyBtn" style="width:100%; justify-content:center;">verify departure (Confirm Active)</button>
+    </div>
+
+    <div style="border-top: 1px solid var(--border); padding-top:14px;">
+      <h4 style="font-size:0.9rem; font-weight:700; margin-bottom:10px; color:#fff;">Report Live Status</h4>
+      
+      <label>Live Status</label>
+      <select id="repLiveStatus">
+        <option value="on-time">On Time</option>
+        <option value="delayed">Delayed</option>
+        <option value="early">Early</option>
+      </select>
+
+      <label>Delay (minutes)</label>
+      <input type="number" id="repLiveDelay" value="0" min="0">
+
+      <label>Current Location</label>
+      <input type="text" id="repLiveLocation" placeholder="e.g. Passing Kamat Stand">
+
+      <label>Crowd Level</label>
+      <select id="repLiveCrowd">
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn sm" id="reportLiveCancelBtn">Cancel</button>
+      <button class="btn sm accent" id="reportLiveSaveBtn">Save Report</button>
+    </div>
   </div>
 </div>
 
@@ -679,62 +862,24 @@
   const db   = firebase.firestore();
 
   // ════════════════════════════════════════
-  // SEED DATA — Do not alter, remove, or regenerate
+  // SEED DATA — Empty as requested
   // ════════════════════════════════════════
-  const SEED = [
-    { id:'s1',  busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'07:00', notes:'Morning via KTC',                                            verified:[] },
-    { id:'s2',  busNo:'4209',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:00', notes:'',                                                           verified:[] },
-    { id:'s3',  busNo:'9424',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:15', notes:'',                                                           verified:['a','b','c','d','e'] },
-    { id:'s4',  busNo:'1747',        type:'general',  from:'Varca',                     to:'ACMSR College',            time:'11:44', notes:'Flacy Route',                                                verified:[] },
-    { id:'s5',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:15', notes:'Bus no. not confirmed yet ✏️',                               verified:['a','b','c'] },
-    { id:'s6',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'11:36', notes:'Bus no. not confirmed yet ✏️',                               verified:[] },
-    { id:'s7',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:30', notes:'Bus no. not confirmed yet ✏️',                               verified:[] },
-    { id:'s8',  busNo:'4209',        type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'12:55', notes:'✅ Bus 4209 confirmed',                                      verified:['x','y'] },
-    { id:'s9',  busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'13:30', notes:'⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus',           verified:['a','b','c','d','e','f'] },
-    { id:'s10', busNo:'?',           type:'general',  from:'ACMSR College',             to:'Kamat Bus Stand',          time:'14:40', notes:'Last College→Kamat bus',                                    verified:[] },
-    { id:'s11', busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'11:38', notes:'',                                                           verified:[] },
-    { id:'s12', busNo:'9424',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'12:47', notes:'',                                                           verified:[] },
-    { id:'s13', busNo:'4209',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:42', notes:'',                                                           verified:[] },
-    { id:'s14', busNo:'1747',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'13:50', notes:'⚡ Tight if catching 1:30 bus',                              verified:[] },
-    { id:'s15', busNo:'5463',        type:'general',  from:'Kamat',                     to:'Varca',                    time:'14:10', notes:'✅ Safe after 1:30 college bus',                             verified:['a','b','c'] },
-    { id:'s16', busNo:'KTC',         type:'ktc',      from:'Varca',                     to:'KTC Bus Stand',            time:'07:00', notes:'Morning KTC service',                                        verified:[] },
-    { id:'s17', busNo:'KTC',         type:'ktc',      from:'KTC Bus Stand',             to:'Margao',                   time:'08:30', notes:'',                                                           verified:[] },
-    { id:'s18', busNo:'7721',        type:'general',  from:'ACMSR College',             to:'Margao',                   time:'13:00', notes:'Via Navelim',                                                verified:[] },
-    { id:'s20', busNo:'5463',        type:'general',  from:'ACMSR College',             to:'Kamat',                    time:'16:40', notes:'Evening bus',                                                verified:[] },
-    { id:'s21', busNo:'MOB1',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'07:30', notes:'Arrives Margao ~8:40 AM',                                   verified:[] },
-    { id:'s22', busNo:'MOB2',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'09:55', notes:'Arrives Margao ~11:30 AM',                                  verified:[] },
-    { id:'s23', busNo:'MOB3',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'13:05', notes:'Arrives Margao ~3:00 PM',                                   verified:[] },
-    { id:'s24', busNo:'MOB4',        type:'general',  from:'Mobor',                     to:'Margao',                   time:'16:45', notes:'Arrives Margao ~5:50 PM',                                   verified:[] },
-    { id:'s25', busNo:'MOB1',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'08:40', notes:'Departs after 7:30 AM Mobor bus',                           verified:[] },
-    { id:'s26', busNo:'MOB2',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'11:30', notes:'Departs after 9:55 AM Mobor bus',                           verified:[] },
-    { id:'s27', busNo:'MOB3',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'15:00', notes:'Departs after 1:05 PM Mobor bus',                           verified:[] },
-    { id:'s28', busNo:'MOB4',        type:'general',  from:'Margao',                    to:'Mobor',                    time:'17:50', notes:'Departs after 4:45 PM Mobor bus',                           verified:[] },
-    { id:'s43', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'11:38', notes:'Via Benaulim & Cavelossim',                                 verified:[] },
-    { id:'s44', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'12:47', notes:'Via Benaulim & Cavelossim',                                 verified:[] },
-    { id:'s45', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:42', notes:'Via Benaulim & Cavelossim',                                 verified:[] },
-    { id:'s46', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'13:50', notes:'⚡ Tight — only if 1:30 PM college bus on time',            verified:[] },
-    { id:'s47', busNo:'?',           type:'general',  from:'Kamat',                     to:'Mobor',                    time:'14:10', notes:'✅ Safe connection after 1:30 PM College bus',               verified:[] },
-    { id:'s29', busNo:'MRG-69',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:15', notes:'Arrives KTC ~7:30 AM · Kadamba govt bus',                  verified:[] },
-    { id:'s32', busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:50', notes:'Arrives KTC ~9:05 AM · Kadamba govt bus',                  verified:[] },
-    { id:'s35', busNo:'MRG-374MB',   type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'12:10', notes:'Arrives KTC ~12:25 PM · Kadamba govt bus',                 verified:[] },
-    { id:'s38', busNo:'MRG-138',     type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'14:20', notes:'Arrives KTC ~2:35 PM · Kadamba govt bus (2nd trip)',       verified:[] },
-    { id:'s41', busNo:'MRG-66',      type:'ktc',      from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'16:30', notes:'Arrives KTC ~4:45 PM · Kadamba govt bus',                  verified:[] },
-    { id:'s30', busNo:'PVT-CUR01',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'07:45', notes:'Arrives KTC ~8:00 AM · via Curtorim',                      verified:[] },
-    { id:'s31', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'08:21', notes:'Arrives KTC ~8:35 AM · via Panaji route',                  verified:[] },
-    { id:'s33', busNo:'PVT-MAI05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'09:15', notes:'Arrives KTC ~9:30 AM · via Maina',                         verified:[] },
-    { id:'s34', busNo:'PVT-CUR02',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'10:30', notes:'Arrives KTC ~10:45 AM · via Curtorim',                     verified:[] },
-    { id:'s36', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:15', notes:'Arrives KTC ~1:30 PM · via Panaji route (2nd)',            verified:[] },
-    { id:'s37', busNo:'PVT-CUR03',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'13:45', notes:'Arrives KTC ~2:00 PM · via Curtorim',                      verified:[] },
-    { id:'s39', busNo:'PVT-MAI08',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'15:45', notes:'Arrives KTC ~4:00 PM · via Maina',                         verified:[] },
-    { id:'s40', busNo:'PVT-CUR04',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'17:15', notes:'Arrives KTC ~5:30 PM · via Curtorim',                      verified:[] },
-    { id:'s42', busNo:'PVT-PNI31',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'18:10', notes:'Arrives KTC ~6:25 PM · via Panaji route (3rd)',            verified:[] },
-    { id:'s43b',busNo:'PVT-CUR05',   type:'private',  from:'ACMSR College (Borda)',      to:'Margao KTC Bus Stand',     time:'19:00', notes:'Arrives KTC ~7:15 PM · via Curtorim',                      verified:[] },
-  ];
+  const SEED = [];
+
+  // ════════════════════════════════════════
+  // OFFLINE PERSISTENCE
+  // ════════════════════════════════════════
+  db.settings({
+    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+  });
+  db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+    console.warn("Firestore persistence failed to enable:", err.code);
+  });
 
   // ════════════════════════════════════════
   // STATE
   // ════════════════════════════════════════
-  let allBuses       = [...SEED];
+  let allBuses       = [];
   let liveDataMap    = {};
   let commentsMap    = {};
   let favoritesSet   = new Set();
@@ -768,56 +913,65 @@
   const $alertMsg     = document.getElementById('alertMsg');
   const $loginBtn     = document.getElementById('loginBtn');
   const $logoutBtn    = document.getElementById('logoutBtn');
-  const $userChip     = document.getElementById('userChip');
+  const $addBusBtn    = document.getElementById('addBusBtn');
   const $adminBtn     = document.getElementById('adminBtn');
+  const $userChip     = document.getElementById('userChip');
   const $reminderBadge= document.getElementById('reminderBadge');
   const $themeToggle  = document.getElementById('themeToggle');
 
-  // ════════════════════════════════════════
-  // ⏰ IST TIME ENGINE  (UTC+5:30 always)
-  //    Works correctly regardless of device
-  //    timezone or system clock offset.
-  // ════════════════════════════════════════
+  // Auth Modal Refs
+  const $authModal          = document.getElementById('authModal');
+  const $authGoogleBtn      = document.getElementById('authGoogleBtn');
+  const $emailAuthView      = document.getElementById('emailAuthView');
+  const $forgotPasswordView = document.getElementById('forgotPasswordView');
+  const $authEmail          = document.getElementById('authEmail');
+  const $authPassword       = document.getElementById('authPassword');
+  const $authSubmitBtn      = document.getElementById('authSubmitBtn');
+  const $authToggleBtn      = document.getElementById('authToggleBtn');
+  const $authToggleText     = document.getElementById('authToggleText');
+  const $authForgotBtn      = document.getElementById('authForgotBtn');
+  const $authCloseBtn       = document.getElementById('authCloseBtn');
+  const $resetEmail         = document.getElementById('resetEmail');
+  const $authResetSubmitBtn = document.getElementById('authResetSubmitBtn');
+  const $authBackToLoginBtn = document.getElementById('authBackToLoginBtn');
 
-  // Returns a Date object forced to IST from UTC
-  function istNow() {
-    const utcMs  = Date.now();
-    const istMs  = utcMs + (5 * 60 + 30) * 60 * 1000; // +5h30m in ms
-    return new Date(istMs);          // internal value is IST but named as UTC
+  // Report Live / Settings Modal Refs
+  const $reportLiveModal    = document.getElementById('reportLiveModal');
+  const $reportLiveModalSub = document.getElementById('reportLiveModalSub');
+  const $reportVerifyBtn    = document.getElementById('reportVerifyBtn');
+  const $repLiveStatus      = document.getElementById('repLiveStatus');
+  const $repLiveDelay       = document.getElementById('repLiveDelay');
+  const $repLiveLocation    = document.getElementById('repLiveLocation');
+  const $repLiveCrowd       = document.getElementById('repLiveCrowd');
+  const $reportLiveCancelBtn= document.getElementById('reportLiveCancelBtn');
+  const $reportLiveSaveBtn  = document.getElementById('reportLiveSaveBtn');
+  let selectedReportBusId   = null;
+
+  // ⏰ LOCAL SYSTEM TIME ENGINE
+  function systemNow() {
+    return new Date();
   }
 
-  // IST hours and minutes right now
-  function istHHMM() {
-    const d = istNow();
-    return { h: d.getUTCHours(), m: d.getUTCMinutes(), s: d.getUTCSeconds() };
+  function systemHHMM() {
+    const d = systemNow();
+    return { h: d.getHours(), m: d.getMinutes(), s: d.getSeconds() };
   }
 
-  // Minutes since midnight IST
   function nowMinutes() {
-    const { h, m } = istHHMM();
+    const { h, m } = systemHHMM();
     return h * 60 + m;
   }
 
-  // Seconds since midnight IST  (for precise scheduling)
   function nowSeconds() {
-    const { h, m, s } = istHHMM();
+    const { h, m, s } = systemHHMM();
     return h * 3600 + m * 60 + s;
   }
 
-  // Milliseconds until a specific HH:MM (IST) today;
-  // returns negative if already past
-  function msUntilIST(hhmm) {
+  function msUntilSystem(hhmm) {
     const [bh, bm] = hhmm.split(':').map(Number);
     const busSec   = bh * 3600 + bm * 60;
     const nowSec   = nowSeconds();
-    return (busSec - nowSec) * 1000;   // exact ms, can be negative
-  }
-
-  // Same but returns ms until TOMORROW's HH:MM if today's has passed
-  function msUntilISTOrTomorrow(hhmm) {
-    let ms = msUntilIST(hhmm);
-    if (ms <= 0) ms += 24 * 3600 * 1000;  // add one day
-    return ms;
+    return (busSec - nowSec) * 1000;
   }
 
   function timeToMins(hhmm) {
@@ -825,9 +979,8 @@
     return h * 60 + m;
   }
 
-  // Whole minutes remaining until HH:MM (IST)
   function minsUntil(hhmm) {
-    return Math.ceil(msUntilIST(hhmm) / 60000);
+    return Math.ceil(msUntilSystem(hhmm) / 60000);
   }
 
   function fmt12(hhmm) {
@@ -837,9 +990,8 @@
     return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
   }
 
-  // Current IST time as HH:MM string
-  function nowISTStr() {
-    const { h, m } = istHHMM();
+  function nowSystemStr() {
+    const { h, m } = systemHHMM();
     return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
   }
 
@@ -849,14 +1001,27 @@
   function updateHero() {
     const now = nowMinutes();
     const upcoming = allBuses
-      .map(b => ({ ...b, minsLeft: timeToMins(b.time) - now }))
-      .filter(b => b.minsLeft > 0 && b.minsLeft <= 480)
+      .filter(b => {
+        const isVerified = b.verifiedByAdmin !== false;
+        const isOwner = currentUser && (b.addedByUid === currentUser.uid || b.addedBy === currentUser.email);
+        if (!isVerified && !isOwner && !isAdmin) return false;
+
+        const live = liveDataMap[b.id] || {};
+        const delay = live.delay || 0;
+        const minsLeft = minsUntil(b.time) + delay;
+        return minsLeft > 0 && minsLeft <= 480;
+      })
+      .map(b => {
+        const live = liveDataMap[b.id] || {};
+        const delay = live.delay || 0;
+        return { ...b, minsLeft: minsUntil(b.time) + delay };
+      })
       .sort((a,b) => a.minsLeft - b.minsLeft);
 
     const next = upcoming[0];
     if (!next) {
-      $heroBusInfo.textContent = 'No more buses today 😴';
-      $heroBusRoute.textContent = 'Check back tomorrow morning';
+      $heroBusInfo.textContent = 'No upcoming buses 😴';
+      $heroBusRoute.textContent = 'Add timings or wait for schedules';
       $countdownMins.textContent = '--';
       $countdownRing.style.strokeDashoffset = '226';
       return;
@@ -879,8 +1044,9 @@
   // POPULATE DROPDOWNS
   // ════════════════════════════════════════
   function populateDropdowns() {
-    const froms = [...new Set(allBuses.map(b => b.from))].sort();
-    const tos   = [...new Set(allBuses.map(b => b.to))].sort();
+    const visible = allBuses.filter(b => b.verifiedByAdmin !== false || isAdmin);
+    const froms = [...new Set(visible.map(b => b.from))].sort();
+    const tos   = [...new Set(visible.map(b => b.to))].sort();
     $filterFrom.innerHTML = '<option value="all">All Origins</option>' +
       froms.map(f => `<option value="${f}">${f}</option>`).join('');
     $filterTo.innerHTML = '<option value="all">All Destinations</option>' +
@@ -891,14 +1057,16 @@
   // RENDER CARDS
   // ════════════════════════════════════════
   function getBusStatus(b) {
-    const mins = minsUntil(b.time);
+    const live = liveDataMap[b.id] || {};
+    const delay = live.delay || 0;
+    const mins = minsUntil(b.time) + delay;
     if (mins < -5)   return 'passed';
     if (mins <= 10)  return 'urgent';
     if (mins <= 30)  return 'soon';
     return 'upcoming';
   }
 
-  function renderCard(b, container) {
+  function renderCard(b) {
     const live  = liveDataMap[b.id] || {};
     const status= live.status || 'on-time';
     const delay = live.delay  || 0;
@@ -907,12 +1075,13 @@
     const isFaved       = favoritesSet.has(b.id);
     const comments      = commentsMap[b.id] || [];
     const busStatus     = getBusStatus(b);
-    const minsLeft      = minsUntil(b.time);
+    const minsLeft      = minsUntil(b.time) + delay;
     const hasReminder   = !!reminders[b.id];
+    const isVerifiedByAdmin = b.verifiedByAdmin !== false;
 
     let timeRemLabel = '';
     let timeRemClass = '';
-    if (busStatus === 'passed') { timeRemLabel = 'Already departed'; timeRemClass = 'gone'; }
+    if (busStatus === 'passed') { timeRemLabel = 'Departed'; timeRemClass = 'gone'; }
     else if (busStatus === 'urgent') { timeRemLabel = `🚨 ${minsLeft} min left!`; timeRemClass = 'urgent'; }
     else if (busStatus === 'soon') { timeRemLabel = `⚠️ ${minsLeft} min left`; timeRemClass = 'soon'; }
     else { timeRemLabel = `${minsLeft} min away`; timeRemClass = ''; }
@@ -925,6 +1094,7 @@
 
     let livePillHtml = `<span class="live-pill ${status}"><span class="live-dot"></span>${status === 'delayed' ? `Delayed ${delay}min` : status === 'early' ? 'Early' : 'On Time'}</span>`;
     let crowdHtml    = `<span class="crowd-pill ${crowd}">👥 ${crowd.charAt(0).toUpperCase()+crowd.slice(1)}</span>`;
+    let pendingBadgeHtml = !isVerifiedByAdmin ? `<span class="pending-badge">Pending Approval</span>` : '';
 
     return `
     <div class="${cardClass}" data-id="${b.id}">
@@ -950,14 +1120,14 @@
         ${crowdHtml}
         ${verifiedCount > 0 ? `<span class="verified-pill">✅ ${verifiedCount} verified</span>` : ''}
         ${cardBadge}
+        ${pendingBadgeHtml}
       </div>
       <div class="card-actions">
         <button class="fav-btn" data-action="fav" data-id="${b.id}" title="Favorite">${isFaved ? '⭐' : '☆'}</button>
         <button class="remind-btn ${hasReminder ? 'active-reminder' : 'set'}" data-action="remind" data-id="${b.id}">
           ${hasReminder ? '🔔 Reminder Set' : '🔔 Remind Me'}
         </button>
-        ${currentUser ? `<button class="btn-xs green" data-action="verify" data-id="${b.id}">✅ Verify</button>` : ''}
-        ${currentUser ? `<button class="btn-xs" data-action="crowd" data-id="${b.id}">👥 Crowd</button>` : ''}
+        <button class="btn-xs" data-action="report-live" data-id="${b.id}">⚙️ Settings</button>
         <button class="btn-xs" data-action="toggle-comments" data-id="${b.id}">💬 ${comments.length || ''}</button>
       </div>
       <div class="comment-section" id="cs-${b.id}">
@@ -981,6 +1151,15 @@
     const fromF    = $filterFrom.value;
     const toF      = $filterTo.value;
     return allBuses.filter(b => {
+      const isVerified = b.verifiedByAdmin !== false;
+      const isOwner = currentUser && (b.addedByUid === currentUser.uid || b.addedBy === currentUser.email);
+      if (!isVerified && !isOwner && !isAdmin) return false;
+
+      const live = liveDataMap[b.id] || {};
+      const delay = live.delay || 0;
+      const minsLeft = minsUntil(b.time) + delay;
+      if (minsLeft < -5) return false;
+
       if (typeF !== 'all' && b.type !== typeF) return false;
       if (fromF !== 'all' && b.from !== fromF) return false;
       if (toF   !== 'all' && b.to   !== toF)   return false;
@@ -1024,6 +1203,7 @@
     renderRemindersList();
     updateHero();
     updateReminderBadge();
+    if (isAdmin) renderApprovalsTab();
   }
 
   function attachCardListeners(container) {
@@ -1040,8 +1220,7 @@
     switch(action) {
       case 'fav':             toggleFavorite(id); break;
       case 'remind':          openReminderModal(id); break;
-      case 'verify':          verifyBus(id); break;
-      case 'crowd':           promptCrowd(id); break;
+      case 'report-live':     openReportLiveModal(id); break;
       case 'toggle-comments': toggleComments(id); break;
       case 'submit-comment':  submitComment(id, e.currentTarget.closest('.comment-row')); break;
     }
@@ -1051,7 +1230,7 @@
   // FAVORITES
   // ════════════════════════════════════════
   function toggleFavorite(id) {
-    if (!currentUser) { showToast('Sign In Required', 'Please sign in to save favorites.', '⭐'); return; }
+    if (!currentUser) { openAuthModal(); return; }
     if (favoritesSet.has(id)) favoritesSet.delete(id);
     else                       favoritesSet.add(id);
     syncFavorites();
@@ -1062,7 +1241,7 @@
     db.collection('users').doc(currentUser.uid).set({
       favorites: [...favoritesSet],
       email: currentUser.email,
-      displayName: currentUser.displayName,
+      displayName: currentUser.displayName || currentUser.email,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).catch(e => console.warn('Fav sync:', e));
   }
@@ -1127,21 +1306,7 @@
     }
   }
 
-  // ════════════════════════════════════════
-  // 🔔 PRECISION REMINDER SCHEDULER (IST)
-  //
-  //  Strategy:
-  //  • For each active reminder, compute exact ms until
-  //    (bus departure time - lead minutes) in IST.
-  //  • Set a millisecond-accurate setTimeout.
-  //  • After firing, daily reminders reschedule for
-  //    the same time TOMORROW (+ 24 h).
-  //  • Every 30 s we also re-run scheduleAllReminders()
-  //    to self-correct any drift.
-  // ════════════════════════════════════════
-
   function scheduleAllReminders() {
-    // Clear all existing pending timers first
     Object.values(reminderTimers).forEach(t => { clearTimeout(t.id); });
     reminderTimers = {};
 
@@ -1149,75 +1314,60 @@
       const bus = allBuses.find(b => b.id === busId) || rem.busData;
       if (!bus) return;
 
-      // Build a virtual HH:MM string shifted back by leadMins
       const busMins      = timeToMins(bus.time);
       const triggerMins  = busMins - rem.leadMins;
       const tH           = Math.floor(triggerMins / 60);
       const tM           = triggerMins % 60;
       const triggerHHMM  = `${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}`;
 
-      let msLeft = msUntilIST(triggerHHMM);
+      let msLeft = msUntilSystem(triggerHHMM);
 
-      // If trigger time already passed today, schedule for tomorrow (daily only)
       if (msLeft <= -60000) {
-        if (rem.repeat === 'once') return;   // don't reschedule once-only past reminders
-        msLeft += 24 * 3600 * 1000;          // tomorrow same time
+        if (rem.repeat === 'once') return;
+        msLeft += 24 * 3600 * 1000;
       } else if (msLeft <= 0) {
-        // Within the last minute — fire immediately (missed by small window)
         msLeft = 500;
       }
 
       const timerId = setTimeout(() => {
         fireReminder(bus, rem.leadMins);
-
         if (rem.repeat === 'once') {
           delete reminders[busId];
           localStorage.setItem('cmsrReminders', JSON.stringify(reminders));
           renderAll();
         } else {
-          // Daily: reschedule for next occurrence (24 h from trigger)
           const nextMs = 24 * 3600 * 1000;
           const nextId = setTimeout(() => scheduleAllReminders(), nextMs);
           reminderTimers[busId] = { id: nextId, fireAt: triggerHHMM, busId };
         }
       }, msLeft);
 
-      reminderTimers[busId] = { id: timerId, fireAt: triggerHHMM, busId,
-                                msLeft, scheduledAt: Date.now() };
-
-      console.log(`[IST Scheduler] Bus ${bus.busNo} (${bus.time}): reminder fires in ${Math.round(msLeft/1000)}s (IST trigger: ${triggerHHMM})`);
+      reminderTimers[busId] = { id: timerId, fireAt: triggerHHMM, busId, msLeft, scheduledAt: Date.now() };
     });
   }
 
   function fireReminder(bus, leadMins) {
-    const { h, m } = istHHMM();
-    const nowStr   = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
     const title    = `🚌 Bus ${bus.busNo} in ${leadMins} min!`;
-    const body     = `${bus.from} → ${bus.to} departs at ${fmt12(bus.time)} IST. Get ready now!`;
+    const body     = `${bus.from} → ${bus.to} departs at ${fmt12(bus.time)}. Get ready!`;
 
-    console.log(`[IST Reminder FIRED] ${title} — IST now: ${nowStr}`);
-
-    // Browser push notification
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
         new Notification(title, {
           body,
           icon: 'https://api.iconify.design/emojione/bus.svg',
           tag:  `cmsr-bus-${bus.id}`,
-          requireInteraction: true,   // stays until user dismisses
+          requireInteraction: true,
           vibrate: [200, 100, 200]
         });
-      } catch(e) { console.warn('Notification error:', e); }
+      } catch(e) { console.warn(e); }
     }
-
-    // In-app toast (10 s timeout)
     showToast(title, body, '🚌', true, 10000);
   }
 
   function removeReminder(busId) {
     delete reminders[busId];
     localStorage.setItem('cmsrReminders', JSON.stringify(reminders));
-    if (reminderTimers[busId]) { clearTimeout(reminderTimers[busId]); delete reminderTimers[busId]; }
+    if (reminderTimers[busId]) { clearTimeout(reminderTimers[busId].id); delete reminderTimers[busId]; }
     renderAll();
     showToast('Reminder Removed', 'Reminder has been cancelled.', '🔕');
   }
@@ -1239,7 +1389,6 @@
           <div class="r-bus">Bus ${bus.busNo}</div>
           <div class="r-route">${bus.from} → ${bus.to}</div>
           <div class="r-time">⏰ ${fmt12(bus.time)} · ${rem.leadMins}min early · ${rem.repeat === 'daily' ? '🔄 Daily' : '1× Only'}</div>
-          ${minsLeft > 0 ? `<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">${minsLeft > rem.leadMins ? `Fires in ${minsLeft - rem.leadMins} min` : '🔔 Firing soon!'}</div>` : `<div style="font-size:0.72rem;color:var(--text3);">Already departed today</div>`}
         </div>
         <div class="r-actions">
           <button class="btn sm" onclick="openReminderModal('${busId}')">Edit</button>
@@ -1256,44 +1405,60 @@
   }
 
   // ════════════════════════════════════════
-  // VERIFY & CROWD
+  // SETTINGS & STATUS REPORT MODAL
   // ════════════════════════════════════════
-  function verifyBus(id) {
-    if (!currentUser) return;
-    const ref = db.collection('bus_timings').doc(id);
+  function openReportLiveModal(id) {
+    if (!currentUser) { openAuthModal(); return; }
+    selectedReportBusId = id;
+    const bus = allBuses.find(b => b.id === id);
+    if (!bus) return;
+
+    const live = liveDataMap[id] || {};
+    $reportLiveModalSub.textContent = `Bus ${bus.busNo} — ${bus.from} → ${bus.to} at ${fmt12(bus.time)}`;
+    $repLiveStatus.value   = live.status || 'on-time';
+    $repLiveDelay.value    = live.delay || 0;
+    $repLiveLocation.value = live.location || '';
+    $repLiveCrowd.value    = live.crowd || 'low';
+
+    $reportLiveModal.classList.remove('hidden');
+  }
+
+  $reportLiveCancelBtn.addEventListener('click', () => {
+    $reportLiveModal.classList.add('hidden');
+    selectedReportBusId = null;
+  });
+
+  $reportLiveSaveBtn.addEventListener('click', () => {
+    if (!selectedReportBusId) return;
+    const liveStatus   = $repLiveStatus.value;
+    const delay        = parseInt($repLiveDelay.value) || 0;
+    const liveLocation = $repLiveLocation.value.trim();
+    const crowd        = $repLiveCrowd.value;
+
+    db.collection('bus_timings').doc(selectedReportBusId).update({
+      liveStatus, delay, liveLocation, crowd
+    }).then(() => {
+      showToast('Status Updated!', 'Thank you for reporting live time details.', '📍');
+      $reportLiveModal.classList.add('hidden');
+      selectedReportBusId = null;
+    }).catch(e => alert(e.message));
+  });
+
+  $reportVerifyBtn.addEventListener('click', () => {
+    if (!selectedReportBusId || !currentUser) return;
+    const ref = db.collection('bus_timings').doc(selectedReportBusId);
     db.runTransaction(async tx => {
       const doc = await tx.get(ref);
       if (!doc.exists) return;
       const v = doc.data().verified || [];
       if (!v.includes(currentUser.uid)) v.push(currentUser.uid);
       tx.update(ref, { verified: v });
-    }).then(() => showToast('Verified!', 'Thanks for verifying this bus.', '✅'))
-      .catch(e => console.warn(e));
-  }
-
-  function promptCrowd(id) {
-    if (!currentUser) return;
-    const level = prompt('Crowd level on this bus?\nType: low, medium, or high', 'medium');
-    if (!['low','medium','high'].includes((level||'').toLowerCase())) return;
-    db.collection('bus_timings').doc(id).collection('crowd_reports').doc(currentUser.uid).set({
-      level: level.toLowerCase(),
-      reportedBy: currentUser.displayName || currentUser.email,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => { aggregateCrowd(id); showToast('Thanks!', 'Crowd report submitted.', '👥'); });
-  }
-
-  function aggregateCrowd(id) {
-    db.collection('bus_timings').doc(id).collection('crowd_reports').get().then(snap => {
-      const reports = [];
-      snap.forEach(d => reports.push(d.data().level));
-      let crowd = 'low';
-      const hi  = reports.filter(r => r === 'high').length;
-      const med = reports.filter(r => r === 'medium').length;
-      if (hi > reports.length * 0.4) crowd = 'high';
-      else if (med + hi > reports.length * 0.5) crowd = 'medium';
-      db.collection('bus_timings').doc(id).update({ crowd, crowdReportCount: reports.length });
-    });
-  }
+    }).then(() => {
+      showToast('Verified!', 'Departure confirmed by you.', '✅');
+      $reportLiveModal.classList.add('hidden');
+      selectedReportBusId = null;
+    }).catch(e => console.warn(e));
+  });
 
   // ════════════════════════════════════════
   // COMMENTS
@@ -1302,6 +1467,7 @@
     const el = document.getElementById(`cs-${id}`);
     if (el) el.classList.toggle('open');
   }
+
   function submitComment(id, row) {
     if (!currentUser || !row) return;
     const input = row.querySelector('input');
@@ -1315,6 +1481,7 @@
     }).then(() => { if (input) input.value = ''; })
       .catch(e => console.warn(e));
   }
+
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.target.dataset.action === 'add-comment') {
       const id = e.target.dataset.id;
@@ -1322,6 +1489,7 @@
       submitComment(id, row);
     }
   });
+
   function loadComments(id) {
     db.collection('bus_timings').doc(id).collection('comments')
       .orderBy('timestamp','asc').onSnapshot(snap => {
@@ -1336,6 +1504,7 @@
   // ════════════════════════════════════════
   function showToast(title, body, icon = '🚌', isReminder = false, duration = 4000) {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = 'toast' + (isReminder ? ' reminder-toast' : '');
     toast.innerHTML = `
@@ -1351,20 +1520,6 @@
   }
 
   // ════════════════════════════════════════
-  // TABS
-  // ════════════════════════════════════════
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.dataset.tab;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(`panel-${tab}`).classList.add('active');
-      activeTab = tab;
-    });
-  });
-
-  // ════════════════════════════════════════
   // FILTERS
   // ════════════════════════════════════════
   $searchInput.addEventListener('input',  renderSchedule);
@@ -1378,40 +1533,26 @@
   });
 
   // ════════════════════════════════════════
-  // FIREBASE SEED SYNC & LISTENER
+  // FIRESTORE LISTENER (Real-Time)
   // ════════════════════════════════════════
-  async function syncSeedToFirestore() {
-    try {
-      const snap = await db.collection('bus_timings').limit(1).get();
-      if (snap.empty) {
-        console.log('🔥 Uploading SEED data to Firestore...');
-        const batch = db.batch();
-        SEED.forEach(bus => {
-          const ref = db.collection('bus_timings').doc(bus.id);
-          batch.set(ref, {
-            busNo: bus.busNo, type: bus.type, from: bus.from, to: bus.to,
-            time: bus.time, notes: bus.notes, addedBy: (bus.addedBy || '').includes('raju') ? 'admin' : (bus.addedBy || ''),
-            verified: bus.verified || [],
-            liveStatus: 'on-time', liveLocation: '', delay: 0,
-            crowd: 'low', crowdReportCount: 0,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        });
-        await batch.commit();
-        console.log('✅ SEED uploaded.');
-      }
-    } catch(e) { console.warn('Firestore seed check (offline?):', e.message); }
-  }
-
   function setupFirestoreListener() {
     db.collection('bus_timings').onSnapshot(snap => {
       const firestoreData = [];
       snap.forEach(doc => {
+        if (doc.id.startsWith('s')) return;
+
         const d = doc.data();
         firestoreData.push({
-          id: doc.id, busNo: d.busNo, type: d.type,
-          from: d.from, to: d.to, time: d.time,
-          notes: d.notes || '', addedBy: d.addedBy || '',
+          id: doc.id,
+          busNo: d.busNo,
+          type: d.type,
+          from: d.from,
+          to: d.to,
+          time: d.time,
+          notes: d.notes || '',
+          addedBy: d.addedBy || '',
+          addedByUid: d.addedByUid || '',
+          verifiedByAdmin: d.verifiedByAdmin !== false,
           verified: d.verified || [],
           liveStatus: d.liveStatus || 'on-time',
           liveLocation: d.liveLocation || '',
@@ -1419,22 +1560,24 @@
           crowd: d.crowd || 'low',
         });
       });
-      const firestoreIds = new Set(firestoreData.map(b => b.id));
-      const seedOnly = SEED.filter(b => !firestoreIds.has(b.id));
-      allBuses = [...firestoreData, ...seedOnly];
+
+      allBuses = firestoreData;
       liveDataMap = {};
       allBuses.forEach(b => {
-        liveDataMap[b.id] = { status: b.liveStatus || 'on-time', location: b.liveLocation || '', delay: b.delay || 0, crowd: b.crowd || 'low' };
+        liveDataMap[b.id] = {
+          status: b.liveStatus || 'on-time',
+          location: b.liveLocation || '',
+          delay: b.delay || 0,
+          crowd: b.crowd || 'low'
+        };
       });
+
       firestoreReady = true;
       populateDropdowns();
       renderAll();
-      firestoreData.forEach(b => loadComments(b.id));
+      allBuses.forEach(b => loadComments(b.id));
     }, err => {
       console.warn('Firestore listener error:', err.message);
-      allBuses = [...SEED];
-      liveDataMap = {};
-      SEED.forEach(b => { liveDataMap[b.id] = { status:'on-time', location:'', delay:0, crowd:'low' }; });
       firestoreReady = true;
       populateDropdowns();
       renderAll();
@@ -1452,30 +1595,122 @@
   document.getElementById('closeAlertBtn').addEventListener('click', () => $alertBar.classList.remove('show'));
 
   // ════════════════════════════════════════
-  // AUTH
+  // 🔐 NEW Google & Email authentication System
   // ════════════════════════════════════════
-  $loginBtn.addEventListener('click', () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(e => showToast('Login Failed', e.message, '❌'));
-  });
+  let isSignUpMode = false;
+
+  function openAuthModal() {
+    $authEmail.value = '';
+    $authPassword.value = '';
+    $resetEmail.value = '';
+    setAuthMode(false);
+    $authModal.classList.remove('hidden');
+  }
+
+  function setAuthMode(signUp) {
+    isSignUpMode = signUp;
+    if (isSignUpMode) {
+      $authSubmitBtn.textContent = 'Create Account';
+      $authToggleText.textContent = 'Already have an account?';
+      $authToggleBtn.textContent = 'Sign In';
+      document.getElementById('authPasswordGroup').classList.remove('hidden');
+    } else {
+      $authSubmitBtn.textContent = 'Sign In with Email';
+      $authToggleText.textContent = "Don't have an account?";
+      $authToggleBtn.textContent = 'Sign Up';
+      document.getElementById('authPasswordGroup').classList.remove('hidden');
+    }
+    $emailAuthView.classList.remove('hidden');
+    $forgotPasswordView.classList.add('hidden');
+  }
+
+  $loginBtn.addEventListener('click', openAuthModal);
   $logoutBtn.addEventListener('click', () => auth.signOut());
+
+  $authCloseBtn.addEventListener('click', () => $authModal.classList.add('hidden'));
+  $authModal.addEventListener('click', e => { if (e.target === $authModal) $authModal.classList.add('hidden'); });
+
+  $authToggleBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    setAuthMode(!isSignUpMode);
+  });
+
+  $authForgotBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    $emailAuthView.classList.add('hidden');
+    $forgotPasswordView.classList.remove('hidden');
+  });
+
+  $authBackToLoginBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    setAuthMode(false);
+  });
+
+  // Google Login
+  $authGoogleBtn.addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+      .then(() => $authModal.classList.add('hidden'))
+      .catch(e => showToast('Login Failed', e.message, '❌'));
+  });
+
+  // Email Submit (Login or register)
+  $authSubmitBtn.addEventListener('click', () => {
+    const email    = $authEmail.value.trim();
+    const password = $authPassword.value;
+    if (!email || !password) { showToast('Required Fields', 'Please fill in both email and password.', '⚠️'); return; }
+
+    if (isSignUpMode) {
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => {
+          showToast('Account Created! 🎉', 'Welcome to CMSR Bus.', '✅');
+          $authModal.classList.add('hidden');
+        })
+        .catch(e => showToast('Sign Up Failed', e.message, '❌'));
+    } else {
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+          showToast('Welcome Back!', 'Signed in successfully.', '✅');
+          $authModal.classList.add('hidden');
+        })
+        .catch(e => showToast('Sign In Failed', e.message, '❌'));
+    }
+  });
+
+  // Password Reset Email
+  $authResetSubmitBtn.addEventListener('click', () => {
+    const email = $resetEmail.value.trim();
+    if (!email) { showToast('Required Field', 'Please enter your email address.', '⚠️'); return; }
+    auth.sendPasswordResetEmail(email)
+      .then(() => {
+        showToast('Reset Link Sent! ✉️', 'Please check your inbox for password reset instructions.', '📧');
+        setAuthMode(false);
+      })
+      .catch(e => showToast('Reset Failed', e.message, '❌'));
+  });
+
   auth.onAuthStateChanged(user => {
     currentUser = user;
     isAdmin     = !!(user && user.email === ADMIN_EMAIL);
+
     if (user) {
       $loginBtn.classList.add('hidden');
       $logoutBtn.classList.remove('hidden');
+      $addBusBtn.classList.remove('hidden');
       $userChip.classList.remove('hidden');
       $userChip.innerHTML = `
-        <img src="${user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||'User')}&background=3d8ef8&color=fff`}" alt="avatar"/>
+        <img src="${user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=3d8ef8&color=fff`}" alt="avatar"/>
         <span class="uname">${user.displayName || user.email}</span>
         ${isAdmin ? '<span style="color:var(--purple);font-size:0.65rem;">Admin</span>' : ''}`;
+      
       if (isAdmin) $adminBtn.classList.remove('hidden');
-      else $adminBtn.classList.add('hidden');
+      else         $adminBtn.classList.add('hidden');
+      
       loadFavorites();
     } else {
       $loginBtn.classList.remove('hidden');
       $logoutBtn.classList.add('hidden');
+      $addBusBtn.classList.add('hidden');
       $userChip.classList.add('hidden');
       $adminBtn.classList.add('hidden');
       favoritesSet.clear();
@@ -1484,13 +1719,33 @@
   });
 
   // ════════════════════════════════════════
-  // ADMIN PANEL
+  // ⚙️ BUS PANEL / ADMIN PANEL
   // ════════════════════════════════════════
+  $addBusBtn.addEventListener('click', () => {
+    if (!currentUser) return;
+    document.getElementById('adminModal').classList.remove('hidden');
+    
+    if (!isAdmin) {
+      document.getElementById('panelTitle').textContent = '➕ Add Bus Timing';
+      document.getElementById('adminTabsGroup').classList.add('hidden');
+      document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+      document.getElementById('atab-add').classList.add('active');
+    } else {
+      document.getElementById('panelTitle').textContent = '⚙️ Admin Panel';
+      document.getElementById('adminTabsGroup').classList.remove('hidden');
+      populateAdminSelects();
+    }
+  });
+
   $adminBtn.addEventListener('click', () => {
     if (!isAdmin) return;
     document.getElementById('adminModal').classList.remove('hidden');
+    document.getElementById('panelTitle').textContent = '⚙️ Admin Panel';
+    document.getElementById('adminTabsGroup').classList.remove('hidden');
     populateAdminSelects();
   });
+
   document.getElementById('adminCloseBtn').addEventListener('click', () => document.getElementById('adminModal').classList.add('hidden'));
   document.getElementById('adminModal').addEventListener('click', e => {
     if (e.target === document.getElementById('adminModal')) document.getElementById('adminModal').classList.add('hidden');
@@ -1518,11 +1773,16 @@
     if (!bus) return;
     document.getElementById('admEditBusNo').value = bus.busNo;
     document.getElementById('admEditType').value  = bus.type;
-    document.getElementById('admEditFrom').value  = bus.from;
-    document.getElementById('admEditTo').value    = bus.to;
     document.getElementById('admEditTime').value  = bus.time;
     document.getElementById('admEditNotes').value = bus.notes || '';
+    
+    const routeKey = `${bus.from}-${bus.to}`;
+    const routeSelect = document.getElementById('admEditRoute');
+    if (routeSelect && ['CMSR-KTC', 'CMSR-Kamat', 'KTC-Varca'].includes(routeKey)) {
+      routeSelect.value = routeKey;
+    }
   });
+
   document.getElementById('admLiveSelect').addEventListener('change', function() {
     const live = liveDataMap[this.value];
     if (!live) return;
@@ -1533,22 +1793,39 @@
   });
 
   document.getElementById('admSaveAdd').addEventListener('click', () => {
-    if (!isAdmin) return;
-    const busNo = document.getElementById('admAddBusNo').value.trim();
-    const type  = document.getElementById('admAddType').value;
-    const from  = document.getElementById('admAddFrom').value.trim();
-    const to    = document.getElementById('admAddTo').value.trim();
-    const time  = document.getElementById('admAddTime').value;
-    const notes = document.getElementById('admAddNotes').value.trim();
-    if (!busNo || !from || !to || !time) { alert('Fill all required fields.'); return; }
-    db.collection('bus_timings').doc('fb_' + Date.now()).set({
-      busNo, type, from, to, time, notes, addedBy:'admin',
-      verified:[], liveStatus:'on-time', liveLocation:'',
-      delay:0, crowd:'low', crowdReportCount:0,
+    if (!currentUser) return;
+    const busNo    = document.getElementById('admAddBusNo').value.trim();
+    const type     = document.getElementById('admAddType').value;
+    const routeVal = document.getElementById('admAddRoute').value;
+    const time     = document.getElementById('admAddTime').value;
+    const notes    = document.getElementById('admAddNotes').value.trim();
+
+    if (!busNo || !routeVal || !time) { alert('Fill all required fields.'); return; }
+
+    let from = '';
+    let to   = '';
+    if (routeVal === 'CMSR-KTC') { from = 'CMSR'; to = 'KTC'; }
+    else if (routeVal === 'CMSR-Kamat') { from = 'CMSR'; to = 'Kamat'; }
+    else if (routeVal === 'KTC-Varca') { from = 'KTC'; to = 'Varca'; }
+
+    const docId = 'fb_' + Date.now();
+    db.collection('bus_timings').doc(docId).set({
+      busNo, type, from, to, time, notes,
+      addedBy: currentUser.email,
+      addedByUid: currentUser.uid,
+      verifiedByAdmin: isAdmin,
+      verified: [],
+      liveStatus: 'on-time', liveLocation: '',
+      delay: 0, crowd: 'low', crowdReportCount: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
-      showToast('Bus Added!', `Bus ${busNo} has been added.`, '✅');
-      ['admAddBusNo','admAddFrom','admAddTo','admAddNotes'].forEach(id => document.getElementById(id).value = '');
+      if (isAdmin) {
+        showToast('Bus Added!', `Bus timing ${busNo} is live.`, '✅');
+      } else {
+        showToast('Submitted for Review!', `Bus timing ${busNo} awaits Admin approval.`, '⏳');
+      }
+      document.getElementById('adminModal').classList.add('hidden');
+      ['admAddBusNo','admAddNotes'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('admAddTime').value = '';
     }).catch(e => alert(e.message));
   });
@@ -1557,14 +1834,24 @@
     if (!isAdmin) return;
     const id = document.getElementById('admEditSelect').value;
     if (!id) { alert('Select a bus first.'); return; }
+    
+    const routeVal = document.getElementById('admEditRoute').value;
+    let from = '';
+    let to   = '';
+    if (routeVal === 'CMSR-KTC') { from = 'CMSR'; to = 'KTC'; }
+    else if (routeVal === 'CMSR-Kamat') { from = 'CMSR'; to = 'Kamat'; }
+    else if (routeVal === 'KTC-Varca') { from = 'KTC'; to = 'Varca'; }
+
     db.collection('bus_timings').doc(id).update({
       busNo: document.getElementById('admEditBusNo').value.trim(),
       type:  document.getElementById('admEditType').value,
-      from:  document.getElementById('admEditFrom').value.trim(),
-      to:    document.getElementById('admEditTo').value.trim(),
+      from, to,
       time:  document.getElementById('admEditTime').value,
       notes: document.getElementById('admEditNotes').value.trim(),
-    }).then(() => showToast('Updated!', 'Bus has been updated.', '✅')).catch(e => alert(e.message));
+    }).then(() => {
+      showToast('Updated!', 'Bus has been updated.', '✅');
+      document.getElementById('adminModal').classList.add('hidden');
+    }).catch(e => alert(e.message));
   });
 
   document.getElementById('admDeleteBus').addEventListener('click', () => {
@@ -1572,7 +1859,10 @@
     const id = document.getElementById('admEditSelect').value;
     if (!id || !confirm('Delete this bus permanently?')) return;
     db.collection('bus_timings').doc(id).delete()
-      .then(() => showToast('Deleted!', 'Bus has been removed.', '🗑')).catch(e => alert(e.message));
+      .then(() => {
+        showToast('Deleted!', 'Bus has been removed.', '🗑');
+        document.getElementById('adminModal').classList.add('hidden');
+      }).catch(e => alert(e.message));
   });
 
   document.getElementById('admSetAlert').addEventListener('click', () => {
@@ -1602,7 +1892,10 @@
       liveLocation: document.getElementById('admLiveLocation').value.trim(),
       delay:        parseInt(document.getElementById('admLiveDelay').value) || 0,
       crowd:        document.getElementById('admLiveCrowd').value,
-    }).then(() => showToast('Live Updated!', 'Live data saved.', '📍')).catch(e => alert(e.message));
+    }).then(() => {
+      showToast('Live Updated!', 'Live data saved.', '📍');
+      document.getElementById('adminModal').classList.add('hidden');
+    }).catch(e => alert(e.message));
   });
 
   ['admCancelAdd','admCancelEdit','admCancelLive'].forEach(id => {
@@ -1642,18 +1935,17 @@
   initTheme();
 
   // ════════════════════════════════════════
-  // ⏰ IST CLOCK DISPLAY (header)
+  // ⏰ SYSTEM CLOCK DISPLAY
   // ════════════════════════════════════════
-  function updateISTClock() {
-    const { h, m, s } = istHHMM();
+  function updateSystemClock() {
+    const { h, m, s } = systemHHMM();
     const clockEl = document.getElementById('istClock');
     if (!clockEl) return;
-    const hh = String(h).padStart(2,'0');
     const mm = String(m).padStart(2,'0');
     const ss = String(s).padStart(2,'0');
     const ampm = h >= 12 ? 'PM' : 'AM';
     const h12  = h % 12 || 12;
-    clockEl.textContent = `IST ${h12}:${mm}:${ss} ${ampm}`;
+    clockEl.textContent = `${h12}:${mm}:${ss} ${ampm}`;
   }
 
   // ════════════════════════════════════════
@@ -1665,30 +1957,26 @@
     scheduleAllReminders();
     requestNotifPermission();
 
-    await syncSeedToFirestore();
     setupFirestoreListener();
     setupAlertListener();
 
     // ── Per-second ticker ─────────────────
-    // Updates hero countdown ring every second for smooth animation.
-    // Also updates card "X min left" labels every 30 s.
     let secondTick = 0;
     setInterval(() => {
       secondTick++;
       updateHero();
-      updateISTClock();
+      updateSystemClock();
 
       // Every 30 seconds: refresh cards + re-align reminders (drift correction)
       if (secondTick % 30 === 0) {
         if (activeTab === 'schedule')  renderSchedule();
         if (activeTab === 'favorites') renderFavorites();
         renderRemindersList();
-        // Re-schedule to correct any timer drift
         scheduleAllReminders();
       }
-    }, 1000);  // every 1 second
+    }, 1000);
 
-    console.log(`🚌 CMSRBus initialized | IST: ${nowISTStr()} | SEED: ${SEED.length} routes | Admin: ${ADMIN_EMAIL}`);
+    console.log(`🚌 CMSRBus initialized | Local Time: ${nowSystemStr()} | Admin: ${ADMIN_EMAIL}`);
   }
 
   init();
