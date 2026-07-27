@@ -929,9 +929,57 @@
   const db   = firebase.firestore();
 
   // ════════════════════════════════════════
-  // SEED DATA — Empty as requested
+  // SEED DATA — Restored for cloud sync
   // ════════════════════════════════════════
-  const SEED = [];
+  const SEED = [
+    { "id":"s1",   "busNo":"9424",        "type":"general",  "from":"Varca",                     "to":"ACMSR College",            "time":"07:00", "notes":"Morning via KTC",                                            "verified":[] },
+    { "id":"s2",   "busNo":"4209",        "type":"general",  "from":"Varca",                     "to":"ACMSR College",            "time":"11:00", "notes":"",                                                           "verified":[] },
+    { "id":"s3",   "busNo":"9424",        "type":"general",  "from":"Varca",                     "to":"ACMSR College",            "time":"11:15", "notes":"",                                                           "verified":["a","b","c","d","e"] },
+    { "id":"s4",   "busNo":"1747",        "type":"general",  "from":"Varca",                     "to":"ACMSR College",            "time":"11:44", "notes":"Flacy Route",                                                "verified":[] },
+    { "id":"s5",   "busNo":"?",           "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"11:15", "notes":"Bus no. not confirmed yet ✏️",                               "verified":["a","b","c"] },
+    { "id":"s6",   "busNo":"?",           "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"11:36", "notes":"Bus no. not confirmed yet ✏️",                               "verified":[] },
+    { "id":"s7",   "busNo":"?",           "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"12:30", "notes":"Bus no. not confirmed yet ✏️",                               "verified":[] },
+    { "id":"s8",   "busNo":"4209",        "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"12:55", "notes":"✅ Bus 4209 confirmed",                                      "verified":["x","y"] },
+    { "id":"s9",   "busNo":"?",           "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"13:30", "notes":"⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus",           "verified":["a","b","c","d","e","f"] },
+    { "id":"s10",  "busNo":"?",           "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"14:40", "notes":"Last College→Kamat bus",                                    "verified":[] },
+    { "id":"s11",  "busNo":"5463",        "type":"general",  "from":"Kamat",                     "to":"Varca",                    "time":"11:38", "notes":"",                                                           "verified":[] },
+    { "id":"s12",  "busNo":"9424",        "type":"general",  "from":"Kamat",                     "to":"Varca",                    "time":"12:47", "notes":"",                                                           "verified":[] },
+    { "id":"s13",  "busNo":"4209",        "type":"general",  "from":"Kamat",                     "to":"Varca",                    "time":"13:42", "notes":"",                                                           "verified":[] },
+    { "id":"s14",  "busNo":"1747",        "type":"general",  "from":"Kamat",                     "to":"Varca",                    "time":"13:50", "notes":"⚡ Tight if catching 1:30 bus",                              "verified":[] },
+    { "id":"s15",  "busNo":"5463",        "type":"general",  "from":"Kamat",                     "to":"Varca",                    "time":"14:10", "notes":"✅ Safe after 1:30 college bus",                             "verified":["a","b","c"] },
+    { "id":"s16",  "busNo":"KTC",         "type":"ktc",      "from":"Varca",                     "to":"KTC Bus Stand",            "time":"07:00", "notes":"Morning KTC service",                                        "verified":[] },
+    { "id":"s17",  "busNo":"KTC",         "type":"ktc",      "from":"KTC Bus Stand",             "to":"Margao",                   "time":"08:30", "notes":"",                                                           "verified":[] },
+    { "id":"s18",  "busNo":"7721",        "type":"general",  "from":"ACMSR College",             "to":"Margao",                   "time":"13:00", "notes":"Via Navelim",                                                "verified":[] },
+    { "id":"s20",  "busNo":"5463",        "type":"general",  "from":"ACMSR College",             "to":"Kamat",                    "time":"16:40", "notes":"Evening bus",                                                "verified":[] },
+    { "id":"s21",  "busNo":"MOB1",        "type":"general",  "from":"Mobor",                     "to":"Margao",                   "time":"07:30", "notes":"Arrives Margao ~8:40 AM",                                   "verified":[] },
+    { "id":"s22",  "busNo":"MOB2",        "type":"general",  "from":"Mobor",                     "to":"Margao",                   "time":"09:55", "notes":"Arrives Margao ~11:30 AM",                                  "verified":[] },
+    { "id":"s23",  "busNo":"MOB3",        "type":"general",  "from":"Mobor",                     "to":"Margao",                   "time":"13:05", "notes":"Arrives Margao ~3:00 PM",                                   "verified":[] },
+    { "id":"s24",  "busNo":"MOB4",        "type":"general",  "from":"Mobor",                     "to":"Margao",                   "time":"16:45", "notes":"Arrives Margao ~5:50 PM",                                   "verified":[] },
+    { "id":"s25",  "busNo":"MOB1",        "type":"general",  "from":"Margao",                    "to":"Mobor",                    "time":"08:40", "notes":"Departs after 7:30 AM Mobor bus",                           "verified":[] },
+    { "id":"s26",  "busNo":"MOB2",        "type":"general",  "from":"Margao",                    "to":"Mobor",                    "time":"11:30", "notes":"Departs after 9:55 AM Mobor bus",                           "verified":[] },
+    { "id":"s27",  "busNo":"MOB3",        "type":"general",  "from":"Margao",                    "to":"Mobor",                    "time":"15:00", "notes":"Departs after 1:05 PM Mobor bus",                           "verified":[] },
+    { "id":"s28",  "busNo":"MOB4",        "type":"general",  "from":"Margao",                    "to":"Mobor",                    "time":"17:50", "notes":"Departs after 4:45 PM Mobor bus",                           "verified":[] },
+    { "id":"s43",  "busNo":"?",           "type":"general",  "from":"Kamat",                     "to":"Mobor",                    "time":"11:38", "notes":"Via Benaulim & Cavelossim",                                 "verified":[] },
+    { "id":"s44",  "busNo":"?",           "type":"general",  "from":"Kamat",                     "to":"Mobor",                    "time":"12:47", "notes":"Via Benaulim & Cavelossim",                                 "verified":[] },
+    { "id":"s45",  "busNo":"?",           "type":"general",  "from":"Kamat",                     "to":"Mobor",                    "time":"13:42", "notes":"Via Benaulim & Cavelossim",                                 "verified":[] },
+    { "id":"s46",  "busNo":"?",           "type":"general",  "from":"Kamat",                     "to":"Mobor",                    "time":"13:50", "notes":"⚡ Tight — only if 1:30 PM college bus on time",            "verified":[] },
+    { "id":"s47",  "busNo":"?",           "type":"general",  "from":"Kamat",                     "to":"Mobor",                    "time":"14:10", "notes":"✅ Safe connection after 1:30 PM College bus",               "verified":[] },
+    { "id":"s29",  "busNo":"MRG-69",      "type":"ktc",      "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"07:15", "notes":"Arrives KTC ~7:30 AM · Kadamba govt bus",                  "verified":[] },
+    { "id":"s32",  "busNo":"MRG-138",     "type":"ktc",      "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"08:50", "notes":"Arrives KTC ~9:05 AM · Kadamba govt bus",                  "verified":[] },
+    { "id":"s35",  "busNo":"MRG-374MB",   "type":"ktc",      "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"12:10", "notes":"Arrives KTC ~12:25 PM · Kadamba govt bus",                 "verified":[] },
+    { "id":"s38",  "busNo":"MRG-138",     "type":"ktc",      "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"14:20", "notes":"Arrives KTC ~2:35 PM · Kadamba govt bus (2nd trip)",       "verified":[] },
+    { "id":"s41",  "busNo":"MRG-66",      "type":"ktc",      "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"16:30", "notes":"Arrives KTC ~4:45 PM · Kadamba govt bus",                  "verified":[] },
+    { "id":"s30",  "busNo":"PVT-CUR01",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"07:45", "notes":"Arrives KTC ~8:00 AM · via Curtorim",                      "verified":[] },
+    { "id":"s31",  "busNo":"PVT-PNI31",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"08:21", "notes":"Arrives KTC ~8:35 AM · via Panaji route",                  "verified":[] },
+    { "id":"s33",  "busNo":"PVT-MAI05",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"09:15", "notes":"Arrives KTC ~9:30 AM · via Maina",                         "verified":[] },
+    { "id":"s34",  "busNo":"PVT-CUR02",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"10:30", "notes":"Arrives KTC ~10:45 AM · via Curtorim",                     "verified":[] },
+    { "id":"s36",  "busNo":"PVT-PNI31",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"13:15", "notes":"Arrives KTC ~1:30 PM · via Panaji route (2nd)",            "verified":[] },
+    { "id":"s37",  "busNo":"PVT-CUR03",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"13:45", "notes":"Arrives KTC ~2:00 PM · via Curtorim",                      "verified":[] },
+    { "id":"s39",  "busNo":"PVT-MAI08",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"15:45", "notes":"Arrives KTC ~4:00 PM · via Maina",                         "verified":[] },
+    { "id":"s40",  "busNo":"PVT-CUR04",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"17:15", "notes":"Arrives KTC ~5:30 PM · via Curtorim",                      "verified":[] },
+    { "id":"s42",  "busNo":"PVT-PNI31",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"18:10", "notes":"Arrives KTC ~6:25 PM · via Panaji route (3rd)",            "verified":[] },
+    { "id":"s43b", "busNo":"PVT-CUR05",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"19:00", "notes":"Arrives KTC ~7:15 PM · via Curtorim",                      "verified":[] }
+  ];
 
   // ════════════════════════════════════════
   // OFFLINE PERSISTENCE
@@ -1606,8 +1654,6 @@
     db.collection('bus_timings').onSnapshot(snap => {
       const firestoreData = [];
       snap.forEach(doc => {
-        if (doc.id.startsWith('s')) return;
-
         const d = doc.data();
         firestoreData.push({
           id: doc.id,
@@ -1763,15 +1809,19 @@
     if (user) {
       $loginBtn.classList.add('hidden');
       $logoutBtn.classList.remove('hidden');
-      $addBusBtn.classList.remove('hidden');
       $userChip.classList.remove('hidden');
       $userChip.innerHTML = `
         <img src="${user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=3d8ef8&color=fff`}" alt="avatar"/>
         <span class="uname">${user.displayName || user.email}</span>
         ${isAdmin ? '<span style="color:var(--purple);font-size:0.65rem;">Admin</span>' : ''}`;
       
-      if (isAdmin) $adminBtn.classList.remove('hidden');
-      else         $adminBtn.classList.add('hidden');
+      if (isAdmin) {
+        $adminBtn.classList.remove('hidden');
+        $addBusBtn.classList.remove('hidden');
+      } else {
+        $adminBtn.classList.add('hidden');
+        $addBusBtn.classList.add('hidden');
+      }
       
       loadFavorites();
     } else {
@@ -1789,20 +1839,11 @@
   // ⚙️ BUS PANEL / ADMIN PANEL
   // ════════════════════════════════════════
   $addBusBtn.addEventListener('click', () => {
-    if (!currentUser) return;
+    if (!isAdmin) return;
     document.getElementById('adminModal').classList.remove('hidden');
-    
-    if (!isAdmin) {
-      document.getElementById('panelTitle').textContent = '➕ Add Bus Timing';
-      document.getElementById('adminTabsGroup').classList.add('hidden');
-      document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-      document.getElementById('atab-add').classList.add('active');
-    } else {
-      document.getElementById('panelTitle').textContent = '⚙️ Admin Panel';
-      document.getElementById('adminTabsGroup').classList.remove('hidden');
-      populateAdminSelects();
-    }
+    document.getElementById('panelTitle').textContent = '⚙️ Admin Panel';
+    document.getElementById('adminTabsGroup').classList.remove('hidden');
+    populateAdminSelects();
   });
 
   $adminBtn.addEventListener('click', () => {
@@ -1860,7 +1901,7 @@
   });
 
   document.getElementById('admSaveAdd').addEventListener('click', () => {
-    if (!currentUser) return;
+    if (!isAdmin) return;
     const busNo    = document.getElementById('admAddBusNo').value.trim();
     const type     = document.getElementById('admAddType').value;
     const routeVal = document.getElementById('admAddRoute').value;
@@ -1880,17 +1921,13 @@
       busNo, type, from, to, time, notes,
       addedBy: currentUser.email,
       addedByUid: currentUser.uid,
-      verifiedByAdmin: isAdmin,
+      verifiedByAdmin: true,
       verified: [],
       liveStatus: 'on-time', liveLocation: '',
       delay: 0, crowd: 'low', crowdReportCount: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
-      if (isAdmin) {
-        showToast('Bus Added!', `Bus timing ${busNo} is live.`, '✅');
-      } else {
-        showToast('Submitted for Review!', `Bus timing ${busNo} awaits Admin approval.`, '⏳');
-      }
+      showToast('Bus Added!', `Bus timing ${busNo} is live.`, '✅');
       document.getElementById('adminModal').classList.add('hidden');
       ['admAddBusNo','admAddNotes'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('admAddTime').value = '';
@@ -1980,6 +2017,33 @@
   updateOnlineStatus();
 
   // ════════════════════════════════════════
+  // FIREBASE: SEED → FIRESTORE
+  // ════════════════════════════════════════
+  async function syncSeedToFirestore() {
+    try {
+      const doc = await db.collection('bus_timings').doc('s1').get();
+      if (!doc.exists) {
+        console.log('🔥 Uploading SEED data to Firestore...');
+        const batch = db.batch();
+        SEED.forEach(bus => {
+          const ref = db.collection('bus_timings').doc(bus.id);
+          batch.set(ref, {
+            busNo: bus.busNo, type: bus.type, from: bus.from, to: bus.to,
+            time: bus.time, notes: bus.notes, addedBy: 'admin',
+            verifiedByAdmin: true,
+            verified: bus.verified || [],
+            liveStatus: 'on-time', liveLocation: '', delay: 0,
+            crowd: 'low', crowdReportCount: 0,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        });
+        await batch.commit();
+        console.log('✅ SEED uploaded.');
+      }
+    } catch(e) { console.warn('Firestore seed check (offline?):', e.message); }
+  }
+
+  // ════════════════════════════════════════
   // DARK / LIGHT MODE TOGGLE
   // ════════════════════════════════════════
   function initTheme() {
@@ -2024,6 +2088,7 @@
     scheduleAllReminders();
     requestNotifPermission();
 
+    await syncSeedToFirestore();
     setupFirestoreListener();
     setupAlertListener();
 
