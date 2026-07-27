@@ -338,30 +338,55 @@
     .status-badge.passed { background: var(--surfaceS);       color: var(--text3); }
 
     .card-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .route-note { display: block; font-size: 0.73rem; color: var(--text3); margin-top: 4px; font-weight: 500; }
 
-    /* Remind button */
-    .remind-btn {
-      display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px;
-      font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid; font-family: inherit; transition: all 0.2s;
+    /* Action Button Pills */
+    .action-btn-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 5px 11px;
+      border-radius: 20px;
+      font-size: 0.77rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.2s;
+      line-height: 1;
     }
-    .remind-btn.set { background: var(--accentGlow); border-color: rgba(61,142,248,0.4); color: var(--accent); }
-    .remind-btn.set:hover { background: rgba(61,142,248,0.25); }
-    .remind-btn.active-reminder {
-      background: rgba(34,212,126,0.12); border-color: rgba(34,212,126,0.4); color: var(--green);
+    body.light-mode .action-btn-pill {
+      background: rgba(0, 0, 0, 0.03);
+    }
+    .action-btn-pill:hover {
+      background: var(--border);
+      color: var(--text);
+      border-color: var(--border2);
+    }
+    .action-btn-pill.active-reminder {
+      background: rgba(34,212,126,0.12);
+      border-color: rgba(34,212,126,0.4);
+      color: var(--green);
       animation: pulse-border 2s infinite;
     }
-    @keyframes pulse-border { 0%,100% { box-shadow: 0 0 0 0 rgba(34,212,126,0.3); } 50% { box-shadow: 0 0 0 4px rgba(34,212,126,0); } }
-
-    .fav-btn { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 4px 6px; border-radius: 6px; transition: transform 0.2s; line-height: 1; }
-    .fav-btn:hover { transform: scale(1.2); }
-
-    .btn-xs {
-      padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; border: 1px solid var(--border);
-      background: var(--surface2); color: var(--text2); cursor: pointer; font-family: inherit; transition: all 0.2s;
+    .action-btn-pill.fav-btn.active {
+      color: var(--yellow);
+      background: var(--yellowDim);
+      border-color: rgba(234,179,8,0.3);
     }
-    .btn-xs:hover { border-color: var(--border2); color: var(--text); }
-    .btn-xs.green { background: var(--greenDim); border-color: rgba(34,212,126,0.4); color: var(--green); }
-    .btn-xs.green:hover { background: rgba(34,212,126,0.25); }
+    .action-btn-pill .c-badge {
+      font-size: 0.62rem;
+      background: var(--accent);
+      color: #fff;
+      padding: 1px 5px;
+      border-radius: 10px;
+      margin-left: 2px;
+      font-weight: 700;
+    }
+    @keyframes pulse-border { 0%,100% { box-shadow: 0 0 0 0 rgba(34,212,126,0.3); } 50% { box-shadow: 0 0 0 4px rgba(34,212,126,0); } }
 
     .comment-section { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; display: none; }
     .comment-section.open { display: block; }
@@ -528,9 +553,7 @@
       .verified-pill { font-size: 0.62rem; }
       
       .card-actions { gap: 4px; margin-top: 8px; }
-      .remind-btn { padding: 4px 8px; font-size: 0.65rem; }
-      .fav-btn { font-size: 0.85rem; padding: 2px 4px; }
-      .btn-xs { padding: 3px 6px; font-size: 0.65rem; }
+      .action-btn-pill { font-size: 0.65rem; padding: 4px 8px; }
       
       .comment-section { margin-top: 6px; padding-top: 6px; }
       .comment-item { font-size: 0.68rem; margin-bottom: 4px; }
@@ -675,7 +698,7 @@
     <div class="hero-inner">
       <div class="hero-bus-icon">🚌</div>
       <div class="hero-text">
-        <h2>Next Upcoming Bus</h2>
+        <h2>Next Departure</h2>
         <div class="next-bus-info" id="heroBusInfo">Loading...</div>
         <div class="next-bus-route" id="heroBusRoute"></div>
       </div>
@@ -1353,6 +1376,7 @@
           </div>
           <div class="card-route">
             <strong>${b.from}</strong> → <strong>${b.to}</strong>
+            ${b.notes ? `<span class="route-note">${b.notes}</span>` : ''}
           </div>
         </div>
         <div class="card-right">
@@ -1360,22 +1384,20 @@
           <div class="time-remaining ${timeRemClass}">${timeRemLabel}</div>
         </div>
       </div>
-      ${b.notes ? `<div class="card-notes">📝 ${b.notes}</div>` : ''}
       <div class="card-meta">
         ${livePillHtml}
         ${live.location ? `<span style="font-size:0.7rem;color:var(--text2)">📍 ${live.location}</span>` : ''}
         ${crowdHtml}
         ${verifiedCount > 0 ? `<span class="verified-pill">✅ ${verifiedCount} verified</span>` : ''}
-        ${cardBadge}
         ${pendingBadgeHtml}
       </div>
       <div class="card-actions">
-        <button class="fav-btn" data-action="fav" data-id="${b.id}" title="Favorite">${isFaved ? '⭐' : '☆'}</button>
-        <button class="remind-btn ${hasReminder ? 'active-reminder' : 'set'}" data-action="remind" data-id="${b.id}">
-          ${hasReminder ? '🔔 Reminder Set' : '🔔 Remind Me'}
+        <button class="action-btn-pill fav-btn ${isFaved ? 'active' : ''}" data-action="fav" data-id="${b.id}" title="Favorite">${isFaved ? '★' : '☆'}</button>
+        <button class="action-btn-pill remind-btn ${hasReminder ? 'active-reminder' : ''}" data-action="remind" data-id="${b.id}" title="Set Reminder">
+          ${hasReminder ? '🔔' : '🔕'}
         </button>
-        <button class="btn-xs" data-action="report-live" data-id="${b.id}">⚙️ Settings</button>
-        <button class="btn-xs" data-action="toggle-comments" data-id="${b.id}">💬 ${comments.length || ''}</button>
+        <button class="action-btn-pill" data-action="report-live" data-id="${b.id}" title="Settings">⚙️</button>
+        <button class="action-btn-pill" data-action="toggle-comments" data-id="${b.id}" title="Comments">💬 ${comments.length ? `<span class="c-badge">${comments.length}</span>` : ''}</button>
       </div>
       <div class="comment-section" id="cs-${b.id}">
         ${comments.map(c => `
