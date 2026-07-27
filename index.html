@@ -732,7 +732,6 @@
       <button class="admin-tab-btn" data-atab="edit" id="tabBtnEdit">✏️ Edit Bus</button>
       <button class="admin-tab-btn" data-atab="alerts" id="tabBtnAlerts">🚨 Alerts</button>
       <button class="admin-tab-btn" data-atab="live" id="tabBtnLive">📍 Live Update</button>
-      <button class="admin-tab-btn" data-atab="approvals" id="tabBtnApprovals">✅ Approvals <span id="approvalBadge" class="hidden" style="background:var(--red);color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:10px;"></span></button>
     </div>
 
     <!-- Add Bus -->
@@ -787,13 +786,7 @@
       <div class="btn-row"><button class="btn sm" id="admCancelLive">Cancel</button><button class="btn sm green-btn" id="admSaveLive">Update Live Data</button></div>
     </div>
 
-    <!-- Approvals -->
-    <div id="atab-approvals" class="admin-section">
-      <h4 style="font-size:0.9rem; font-weight:700; margin-bottom:10px; color:#fff;">Pending Timings</h4>
-      <div id="pendingApprovalsList" style="display:grid; gap:10px; max-height: 300px; overflow-y: auto;">
-        <!-- Filled dynamically -->
-      </div>
-    </div>
+
 
     <button class="btn sm" style="width:100%;margin-top:14px;justify-content:center;" id="adminCloseBtn">Close Panel</button>
   </div>
@@ -1318,7 +1311,6 @@
     renderRemindersList();
     updateHero();
     updateReminderBadge();
-    if (isAdmin) renderApprovalsTab();
   }
 
   function attachCardListeners(container) {
