@@ -745,11 +745,12 @@
     <div class="admin-card" style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow);">
       <h3 style="font-size:1.3rem; font-weight:800; color:#fff; margin-bottom:15px; display:flex; align-items:center; gap:8px;">⚙️ Admin Timing Dashboard</h3>
       
-      <div class="admin-tabs" style="margin-bottom:20px; display:flex; gap:6px;" id="adminTabsGroup">
+      <div class="admin-tabs" style="margin-bottom:20px; display:flex; flex-wrap:wrap; gap:6px;" id="adminTabsGroup">
         <button class="admin-tab-btn active" data-atab="add">➕ Add Bus</button>
         <button class="admin-tab-btn" data-atab="edit" id="tabBtnEdit">✏️ Edit Bus</button>
         <button class="admin-tab-btn" data-atab="alerts" id="tabBtnAlerts">🚨 Alerts</button>
         <button class="admin-tab-btn" data-atab="live" id="tabBtnLive">📍 Live Update</button>
+        <button class="admin-tab-btn" data-atab="approvals" id="tabBtnApprovals">✅ Approvals <span id="approvalBadge" class="hidden" style="background:var(--red);color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:10px;"></span></button>
       </div>
 
       <!-- Add Bus -->
@@ -808,6 +809,14 @@
         <label>Crowd Level</label><select id="admLiveCrowd"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
         <div style="margin-top:14px;">
           <button class="btn sm green-btn" id="admSaveLive" style="width:100%; justify-content:center; height:40px;">Update Live Data</button>
+        </div>
+      </div>
+
+      <!-- Approvals -->
+      <div id="atab-approvals" class="admin-section">
+        <h4 style="font-size:0.9rem; font-weight:700; margin-bottom:10px; color:#fff;">Pending Timings</h4>
+        <div id="pendingApprovalsList" style="display:grid; gap:10px; max-height: 300px; overflow-y: auto;">
+          <!-- Filled dynamically -->
         </div>
       </div>
     </div>
@@ -1441,6 +1450,7 @@
     renderRemindersList();
     updateHero();
     updateReminderBadge();
+    if (isAdmin) renderApprovalsTab();
   }
 
   function attachCardListeners(container) {
@@ -1936,11 +1946,35 @@
       $profileRoleBadge.style.background = isAdmin ? 'var(--purpleDim)' : 'var(--accentGlow)';
       $profileRoleBadge.style.color = isAdmin ? 'var(--purple)' : 'var(--accent)';
 
-      // Show/Hide Add Timing bottom tab
+      // All logged-in users can suggest timing entries via the bottom Add tab
+      $navAdd.classList.remove('hidden');
+
+      // Configure Add Timing tab view elements based on admin role
+      const $adminTabsGroup = document.getElementById('adminTabsGroup');
+      const $panelTitle = document.getElementById('panelTitle');
+      const $admSaveAddBtn = document.getElementById('admSaveAdd');
+      
       if (isAdmin) {
-        $navAdd.classList.remove('hidden');
+        if ($adminTabsGroup) $adminTabsGroup.classList.remove('hidden');
+        if ($panelTitle) $panelTitle.textContent = '⚙️ Admin Timing Dashboard';
+        if ($admSaveAddBtn) $admSaveAddBtn.textContent = 'Save Bus Timing';
+        
+        // Reset subtab views to active Suggestion form
+        document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+        const activeTabBtn = document.querySelector('.admin-tab-btn[data-atab="add"]');
+        if (activeTabBtn) activeTabBtn.classList.add('active');
+        const activeSec = document.getElementById('atab-add');
+        if (activeSec) activeSec.classList.add('active');
       } else {
-        $navAdd.classList.add('hidden');
+        if ($adminTabsGroup) $adminTabsGroup.classList.add('hidden');
+        if ($panelTitle) $panelTitle.textContent = '➕ Suggest Bus Timing';
+        if ($admSaveAddBtn) $admSaveAddBtn.textContent = 'Submit for Review';
+        
+        // Lock non-admins to the atab-add form section
+        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+        const activeSec = document.getElementById('atab-add');
+        if (activeSec) activeSec.classList.add('active');
       }
 
       loadFavorites();
@@ -1978,6 +2012,54 @@
     document.getElementById('admLiveSelect').innerHTML = '<option value="">-- Choose a bus --</option>' + opts;
   }
 
+  function renderApprovalsTab() {
+    const pending = allBuses.filter(b => b.verifiedByAdmin === false);
+    const $badge = document.getElementById('approvalBadge');
+    const $list = document.getElementById('pendingApprovalsList');
+
+    if (pending.length > 0) {
+      $badge.textContent = pending.length;
+      $badge.classList.remove('hidden');
+    } else {
+      $badge.classList.add('hidden');
+    }
+
+    if (pending.length === 0) {
+      $list.innerHTML = `<div style="text-align:center;color:var(--text3);padding:20px;font-size:0.85rem;">No pending timings for review.</div>`;
+      return;
+    }
+
+    $list.innerHTML = pending.map(b => `
+      <div class="pending-item" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:var(--radiusSm); padding:10px; display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:700; color:#fff; font-size:0.85rem;">Bus ${b.busNo} (${b.type})</span>
+          <span style="font-size:0.7rem; color:var(--text3);">by ${b.addedBy || 'User'}</span>
+        </div>
+        <div style="font-size:0.8rem; color:var(--text2);">${b.from} ➔ ${b.to} at <strong style="color:var(--accent);">${fmt12(b.time)}</strong></div>
+        ${b.notes ? `<div style="font-size:0.75rem; color:var(--text3); font-style:italic;">"${b.notes}"</div>` : ''}
+        <div style="display:flex; gap:6px; margin-top:4px;">
+          <button class="btn sm danger" onclick="adminRejectTiming('${b.id}')" style="flex:1; justify-content:center; padding:4px;">Reject</button>
+          <button class="btn sm green-btn" onclick="adminApproveTiming('${b.id}')" style="flex:2; justify-content:center; padding:4px;">Approve</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.adminApproveTiming = function(id) {
+    db.collection('bus_timings').doc(id).update({
+      verifiedByAdmin: true
+    }).then(() => {
+      showToast('Timing Approved! ✅', 'Bus timing is now live on the timetable.', '✅');
+    }).catch(e => alert(e.message));
+  };
+
+  window.adminRejectTiming = function(id) {
+    if (!confirm('Reject and delete this timing request permanently?')) return;
+    db.collection('bus_timings').doc(id).delete().then(() => {
+      showToast('Timing Rejected 🗑', 'Timing request has been deleted.', '🗑');
+    }).catch(e => alert(e.message));
+  };
+
   document.getElementById('admEditSelect').addEventListener('change', function() {
     const bus = allBuses.find(b => b.id === this.value);
     if (!bus) return;
@@ -2003,7 +2085,7 @@
   });
 
   document.getElementById('admSaveAdd').addEventListener('click', () => {
-    if (!isAdmin) return;
+    if (!currentUser) { openAuthModal(); return; }
     const busNo    = document.getElementById('admAddBusNo').value.trim();
     const type     = document.getElementById('admAddType').value;
     const routeVal = document.getElementById('admAddRoute').value;
@@ -2023,13 +2105,18 @@
       busNo, type, from, to, time, notes,
       addedBy: currentUser.email,
       addedByUid: currentUser.uid,
-      verifiedByAdmin: true,
+      verifiedByAdmin: isAdmin,
       verified: [],
       liveStatus: 'on-time', liveLocation: '',
       delay: 0, crowd: 'low', crowdReportCount: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
-      showToast('Bus Added!', `Bus timing ${busNo} is live.`, '✅');
+      if (isAdmin) {
+        showToast('Bus Added!', `Bus timing ${busNo} is live.`, '✅');
+      } else {
+        showToast('Submitted for Review!', `Bus timing ${busNo} awaits Admin approval.`, '⏳');
+        showView('buses');
+      }
       document.getElementById('adminModal').classList.add('hidden');
       ['admAddBusNo','admAddNotes'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('admAddTime').value = '';
