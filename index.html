@@ -2104,9 +2104,6 @@
     }).catch(e => alert(e.message));
   });
 
-  ['admCancelAdd','admCancelEdit','admCancelLive'].forEach(id => {
-    document.getElementById(id).addEventListener('click', () => document.getElementById('adminModal').classList.add('hidden'));
-  });
 
   // ════════════════════════════════════════
   // NETWORK DETECTION
