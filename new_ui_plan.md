@@ -1,0 +1,11 @@
+Rebuild Plan:
+- Keep the head and Firebase setup exactly the same.
+- Rewrite all CSS variables to mimic WhatsApp colors (Teal Green, Dark blue-grey for dark mode).
+- Top Header: Solid color, clean typography, maybe a search icon in the header.
+- Main layout: List view mimicking chats. Each bus card is a "chat row".
+  - Left: Bus icon (avatar)
+  - Middle: Bus route (chat name) + small notes/live status (chat preview)
+  - Right: Time (timestamp) + Time remaining badge (unread badge)
+- Add a new "Live Recommendation" component at the top (like a pinned message or status bar) that clearly shows the absolute best next bus.
+- Bottom Navigation: Minimalistic 3 tabs (Buses, Add, Profile).
+- Simplify the "Add Bus" flow to be a clean, full-page form.
