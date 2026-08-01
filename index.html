@@ -3,2265 +3,836 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>CMSR Bus — Goa Bus Reminder &amp; Tracker</title>
-  <meta name="description" content="Real-time bus schedule tracker and reminder system for ACMSR College routes in Goa. Never miss your bus again." />
+  <title>CMSR Bus</title>
+  <meta name="description" content="Real-time bus schedule tracker." />
   <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <!-- Firebase SDKs (compat v10) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
   <style>
     :root {
-      --bg:         #080d1a;
-      --bg2:        #0d1525;
-      --surface:    rgba(255,255,255,0.05);
-      --surface2:   rgba(255,255,255,0.08);
-      --surfaceS:   rgba(255,255,255,0.03);
-      --border:     rgba(255,255,255,0.10);
-      --border2:    rgba(255,255,255,0.15);
-      --text:       #e8edf5;
-      --text2:      #8892a4;
-      --text3:      #5a6478;
-      --accent:     #3d8ef8;
-      --accent2:    #1a6ef0;
-      --accentGlow: rgba(61,142,248,0.25);
-      --green:      #22d47e;
-      --greenDim:   rgba(34,212,126,0.15);
-      --red:        #f2545b;
-      --redDim:     rgba(242,84,91,0.15);
-      --yellow:     #f5c542;
-      --yellowDim:  rgba(245,197,66,0.15);
-      --orange:     #f97316;
-      --purple:     #a855f7;
-      --purpleDim:  rgba(168,85,247,0.15);
-      --radius:     14px;
-      --radiusSm:   8px;
-      --shadow:     0 8px 32px rgba(0,0,0,0.5);
-      --shadowSm:   0 2px 12px rgba(0,0,0,0.3);
+      /* WhatsApp Dark Theme Colors */
+      --wa-bg: #111b21;
+      --wa-panel-bg: #222e35;
+      --wa-header: #202c33;
+      --wa-primary: #00a884;
+      --wa-primary-dark: #008f6f;
+      --wa-text-primary: #e9edef;
+      --wa-text-secondary: #8696a0;
+      --wa-text-muted: #667781;
+      --wa-border: #222d34;
+      --wa-divider: #2a3942;
+      --wa-danger: #ef4444;
+      --wa-warning: #f59e0b;
+
+      /* App Specific */
+      --radius: 12px;
     }
 
-    /* Light mode overrides (toggleable) */
     body.light-mode {
-      --bg:         #f8fafc;
-      --bg2:        #e2e8f0;
-      --surface:    rgba(255,255,255,0.9);
-      --surface2:   rgba(0,0,0,0.05);
-      --surfaceS:   rgba(0,0,0,0.02);
-      --border:     rgba(0,0,0,0.08);
-      --border2:    rgba(0,0,0,0.15);
-      --text:       #0f172a;
-      --text2:      #475569;
-      --text3:      #94a3b8;
-      --accent:     #2563eb;
-      --accent2:    #1d4ed8;
-      --accentGlow: rgba(37,99,235,0.15);
-      --green:      #059669;
-      --greenDim:   rgba(5,150,105,0.1);
-      --red:        #dc2626;
-      --redDim:     rgba(220,38,38,0.1);
-      --yellow:     #ca8a04;
-      --yellowDim:  rgba(202,138,4,0.1);
-      --purple:     #7c3aed;
-      --purpleDim:  rgba(124,58,237,0.1);
-      --shadow:     0 4px 20px rgba(0,0,0,0.1);
-      --shadowSm:   0 1px 8px rgba(0,0,0,0.05);
+      /* WhatsApp Light Theme Colors */
+      --wa-bg: #efeae2;
+      --wa-panel-bg: #ffffff;
+      --wa-header: #008069;
+      --wa-primary: #008069;
+      --wa-primary-dark: #005c4b;
+      --wa-text-primary: #111b21;
+      --wa-text-secondary: #667781;
+      --wa-text-muted: #8696a0;
+      --wa-border: #e9edef;
+      --wa-divider: #f0f2f5;
     }
 
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
 
     body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      line-height: 1.5;
+      background-color: var(--wa-bg);
+      color: var(--wa-text-primary);
+      -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
-      transition: background 0.2s, color 0.2s;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
 
-    /* Background grid */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(61,142,248,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(61,142,248,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* Offline banner */
-    .offline-banner {
-      display: none;
-      background: var(--red);
-      color: white;
-      text-align: center;
-      padding: 8px 12px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      position: sticky;
-      top: 0;
-      z-index: 101;
-    }
-    body.offline .offline-banner { display: block; }
-
-    /* Header */
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(8,13,26,0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 20px;
-      height: 64px;
+    /* === Header === */
+    .app-header {
+      background-color: var(--wa-header);
+      color: #fff;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .app-title { font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 8px;}
+    .header-actions { display: flex; align-items: center; gap: 16px; }
+    .icon-btn {
+      background: none; border: none; color: inherit; font-size: 1.2rem; cursor: pointer;
+      opacity: 0.8; transition: opacity 0.2s;
+    }
+    .icon-btn:hover { opacity: 1; }
+
+    /* === Main Content Area === */
+    .app-main {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 70px; /* Space for bottom nav */
+    }
+
+    /* === Live Recommendation (Pinned Message Style) === */
+    .live-recommendation {
+      background-color: var(--wa-panel-bg);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
       gap: 12px;
-    }
-    body.light-mode .header { background: rgba(255,255,255,0.8); }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 800;
-      font-size: 1.2rem;
-      letter-spacing: -0.5px;
-      color: #fff;
-      white-space: nowrap;
-    }
-    body.light-mode .logo { color: var(--text); }
-    .logo-icon {
-      width: 36px; height: 36px;
-      background: linear-gradient(135deg, var(--accent), #7c3aed);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-      flex-shrink: 0;
-    }
-    .logo span { color: var(--accent); }
-
-    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-    /* Hero */
-    .hero {
-      position: relative; z-index: 1;
-      margin: 20px 20px 0;
-      background: linear-gradient(135deg, rgba(61,142,248,0.15) 0%, rgba(124,58,237,0.15) 100%);
-      border: 1px solid rgba(61,142,248,0.3);
-      border-radius: 20px;
-      padding: 24px;
-      overflow: hidden;
-    }
-    .hero::before {
-      content: ''; position: absolute; top: -50%; right: -10%;
-      width: 300px; height: 300px;
-      background: radial-gradient(circle, rgba(61,142,248,0.12) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .hero-inner {
-      position: relative;
-      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
-    }
-    .hero-bus-icon { font-size: 3rem; line-height: 1; animation: float 3s ease-in-out infinite; }
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-6px); }
-    }
-    .hero-text h2 {
-      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px;
-      color: var(--accent); font-weight: 600; margin-bottom: 4px;
-    }
-    .hero-text .next-bus-info { font-size: 1.3rem; font-weight: 700; color: #fff; }
-    body.light-mode .hero-text .next-bus-info { color: var(--text); }
-    .hero-text .next-bus-route { font-size: 0.85rem; color: var(--text2); margin-top: 2px; }
-    .hero-countdown { margin-left: auto; text-align: right; }
-    .countdown-ring-wrap {
-      position: relative; width: 90px; height: 90px; margin: 0 auto 4px;
-    }
-    .countdown-ring-wrap svg { transform: rotate(-90deg); }
-    .countdown-ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 6; }
-    .countdown-ring-fg {
-      fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round;
-      stroke-dasharray: 226; stroke-dashoffset: 226; transition: stroke-dashoffset 1s linear;
-    }
-    .countdown-ring-fg.urgent { stroke: var(--red); }
-    .countdown-ring-fg.soon   { stroke: var(--yellow); }
-    .countdown-center {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-    .countdown-mins { font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1; }
-    .countdown-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
-    .hero-no-bus { font-size: 1rem; color: var(--text2); text-align: center; padding: 10px 0; }
-
-    /* Alert bar */
-    .alert-bar {
-      position: relative; z-index: 1; margin: 12px 20px 0;
-      background: linear-gradient(135deg, rgba(245,197,66,0.12), rgba(249,115,22,0.12));
-      border: 1px solid rgba(245,197,66,0.3);
-      border-radius: var(--radius); padding: 12px 16px; display: none;
-      align-items: center; gap: 10px; font-size: 0.875rem; font-weight: 500; color: var(--yellow);
-      animation: slideIn 0.3s ease;
-    }
-    .alert-bar.show { display: flex; }
-    .alert-bar .alert-msg { flex: 1; }
-    .alert-bar .close-alert {
-      background: none; border: none; cursor: pointer; color: var(--text2); font-size: 1.1rem;
-      line-height: 1; padding: 2px;
-    }
-    .alert-bar .close-alert:hover { color: #fff; }
-    @keyframes slideIn {
-      from { opacity:0; transform: translateY(-8px); }
-      to   { opacity:1; transform: translateY(0); }
-    }
-
-    /* Tabs */
-    .tabs-nav {
-      position: relative; z-index: 1;
-      display: flex; gap: 4px; padding: 16px 20px 0;
-    }
-    .tab-btn {
-      padding: 8px 16px; border-radius: 10px 10px 0 0;
-      border: 1px solid transparent; border-bottom: none;
-      background: none; color: var(--text2); font-size: 0.82rem; font-weight: 600;
-      cursor: pointer; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; gap: 5px;
-    }
-    .tab-btn:hover { color: var(--text); background: var(--surface); }
-    .tab-btn.active { color: #fff; background: rgba(61,142,248,0.12); border-color: rgba(61,142,248,0.3); }
-
-    /* Main */
-    .main { position: relative; z-index: 1; padding: 0 20px 90px; }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-
-    /* Filter strip */
-    .filter-strip { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 0 14px; align-items: center; }
-    .search-wrap { position: relative; flex: 1; min-width: 220px; }
-    .search-wrap .search-icon {
-      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-      color: var(--text3); font-size: 0.9rem; pointer-events: none;
-    }
-    .search-wrap input { width: 100%; padding: 10px 12px 10px 36px; }
-    .filter-strip input, .filter-strip select {
-      padding: 10px 12px; border-radius: var(--radiusSm); border: 1px solid var(--border);
-      background: var(--surface); color: var(--text); font-size: 0.825rem; font-family: inherit;
-      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .filter-strip input:focus, .filter-strip select:focus {
-      border-color: var(--accent); box-shadow: 0 0 0 3px var(--accentGlow);
-    }
-    .filter-strip select option { background: #1e293b; color: var(--text); }
-    .result-count { font-size: 0.78rem; color: var(--text3); white-space: nowrap; }
-
-    /* Bus cards */
-    .bus-grid { display: grid; gap: 10px; }
-
-    .bus-card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 16px 18px; transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-      position: relative; overflow: hidden;
-    }
-    .bus-card::before {
-      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px;
-    }
-    .bus-card.type-general::before { background: var(--accent); }
-    .bus-card.type-ktc::before    { background: var(--yellow); }
-    .bus-card.type-private::before { background: var(--purple); }
-    .bus-card:hover { border-color: var(--border2); box-shadow: 0 4px 20px rgba(0,0,0,0.4); transform: translateY(-1px); }
-    .bus-card.next-up { border-color: rgba(61,142,248,0.5); background: rgba(61,142,248,0.06); }
-    .bus-card.departing-soon { border-color: rgba(245,197,66,0.4); background: rgba(245,197,66,0.05); }
-
-    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-    .card-left { flex: 1; min-width: 0; }
-    .card-bus-no { font-size: 1.05rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    body.light-mode .card-bus-no { color: var(--text); }
-    .type-badge {
-      font-size: 0.6rem; padding: 2px 7px; border-radius: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .type-badge.general { background: rgba(61,142,248,0.2); color: var(--accent); }
-    .type-badge.ktc     { background: rgba(245,197,66,0.2); color: var(--yellow); }
-    .type-badge.private { background: rgba(168,85,247,0.2); color: var(--purple); }
-
-    .card-route { font-size: 0.82rem; color: var(--text2); margin-top: 3px; }
-    .card-route strong { color: var(--text); }
-    .card-right { text-align: right; flex-shrink: 0; }
-    .card-time { font-size: 1.4rem; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; line-height: 1; }
-    .time-remaining { font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
-    .time-remaining.soon   { color: var(--yellow); font-weight: 600; }
-    .time-remaining.urgent { color: var(--red); font-weight: 700; }
-    .time-remaining.gone   { color: var(--text3); }
-
-    .card-notes {
-      font-size: 0.78rem; color: var(--text2); margin-top: 8px; padding: 6px 10px;
-      background: var(--surfaceS); border-radius: 6px; border-left: 2px solid var(--border);
-    }
-    .card-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
-
-    .live-pill {
-      display: inline-flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 600;
-      padding: 3px 8px; border-radius: 20px;
-    }
-    .live-pill.on-time { background: var(--greenDim); color: var(--green); }
-    .live-pill.delayed { background: var(--redDim);   color: var(--red); }
-    .live-pill.early   { background: var(--yellowDim); color: var(--yellow); }
-    .live-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: currentColor;
-      animation: blink 1.4s infinite;
-    }
-    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-
-    .crowd-pill { font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 20px; }
-    .crowd-pill.low    { background: var(--greenDim);  color: var(--green); }
-    .crowd-pill.medium { background: var(--yellowDim); color: var(--yellow); }
-    .crowd-pill.high   { background: var(--redDim);    color: var(--red); }
-
-    .verified-pill { font-size: 0.7rem; color: var(--green); font-weight: 600; }
-
-    .status-badge {
-      font-size: 0.65rem; padding: 2px 8px; border-radius: 20px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.5px; margin-left: auto;
-    }
-    .status-badge.next   { background: rgba(61,142,248,0.2); color: var(--accent); }
-    .status-badge.soon   { background: var(--yellowDim);     color: var(--yellow); }
-    .status-badge.passed { background: var(--surfaceS);       color: var(--text3); }
-
-    .card-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
-    .route-note { display: block; font-size: 0.73rem; color: var(--text3); margin-top: 4px; font-weight: 500; }
-
-    /* Action Button Pills */
-    .action-btn-pill {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      color: var(--text2);
-      padding: 5px 11px;
-      border-radius: 20px;
-      font-size: 0.77rem;
-      font-weight: 600;
-      font-family: inherit;
+      border-bottom: 1px solid var(--wa-divider);
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
+    }
+    .live-icon-wrap {
+      width: 40px; height: 40px; border-radius: 50%;
+      background-color: rgba(0, 168, 132, 0.15);
+      color: var(--wa-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+    body.light-mode .live-icon-wrap { background-color: var(--wa-primary); color: #fff; }
+
+    .live-content { flex: 1; min-width: 0; }
+    .live-title { font-size: 0.95rem; font-weight: 600; color: var(--wa-text-primary); margin-bottom: 2px; }
+    .live-desc { font-size: 0.85rem; color: var(--wa-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .live-time {
+      font-size: 0.75rem; color: var(--wa-primary); font-weight: 600; text-align: right;
+    }
+
+    /* === Tabs (Chats / Favorites / Reminders) === */
+    .wa-tabs {
+      display: flex; background-color: var(--wa-header); color: rgba(255,255,255,0.7);
+    }
+    .wa-tab {
+      flex: 1; padding: 12px 0; text-align: center; font-size: 0.9rem; font-weight: 600;
+      text-transform: uppercase; cursor: pointer; border-bottom: 3px solid transparent;
       transition: all 0.2s;
-      line-height: 1;
     }
-    body.light-mode .action-btn-pill {
-      background: rgba(0, 0, 0, 0.03);
-    }
-    .action-btn-pill:hover {
-      background: var(--border);
-      color: var(--text);
-      border-color: var(--border2);
-    }
-    .action-btn-pill.active-reminder {
-      background: rgba(34,212,126,0.12);
-      border-color: rgba(34,212,126,0.4);
-      color: var(--green);
-      animation: pulse-border 2s infinite;
-    }
-    .action-btn-pill.fav-btn.active {
-      color: var(--yellow);
-      background: var(--yellowDim);
-      border-color: rgba(234,179,8,0.3);
-    }
-    .action-btn-pill .c-badge {
-      font-size: 0.62rem;
-      background: var(--accent);
-      color: #fff;
-      padding: 1px 5px;
-      border-radius: 10px;
-      margin-left: 2px;
-      font-weight: 700;
-    }
-    @keyframes pulse-border { 0%,100% { box-shadow: 0 0 0 0 rgba(34,212,126,0.3); } 50% { box-shadow: 0 0 0 4px rgba(34,212,126,0); } }
+    .wa-tab.active { color: #fff; border-bottom-color: #fff; }
 
-    .comment-section { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; display: none; }
-    .comment-section.open { display: block; }
-    .comment-item { font-size: 0.77rem; color: var(--text2); padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
-    .comment-item strong { color: var(--text); }
-    .comment-item .comment-time { font-size: 0.65rem; color: var(--text3); margin-left: 6px; }
-    .comment-row { display: flex; gap: 6px; margin-top: 8px; }
-    .comment-row input { flex: 1; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 0.8rem; font-family: inherit; outline: none; }
-    .comment-row button { padding: 7px 14px; border-radius: 6px; border: none; background: var(--accent); color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+    body.light-mode .wa-tabs { background-color: var(--wa-header); }
 
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--radiusSm);
-      border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 0.85rem; font-weight: 600;
-      cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap;
+    /* === List View (Chats Style) === */
+    .bus-list { background-color: var(--wa-panel-bg); }
+    .bus-item {
+      display: flex; align-items: center; padding: 12px 16px;
+      cursor: pointer; transition: background 0.2s;
     }
-    .btn:hover { border-color: var(--border2); background: rgba(255,255,255,0.1); }
-    .btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .btn.accent:hover { background: var(--accent2); }
-    .btn.outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
-    .btn.outline:hover { background: var(--accent); color: #fff; }
-    .btn.danger { background: var(--redDim); border-color: rgba(242,84,91,0.4); color: var(--red); }
-    .btn.danger:hover { background: rgba(242,84,91,0.25); }
-    .btn.green-btn { background: var(--greenDim); border-color: rgba(34,212,126,0.4); color: var(--green); }
-    .btn.green-btn:hover { background: rgba(34,212,126,0.25); }
-    .btn.sm { padding: 6px 12px; font-size: 0.78rem; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .bus-item:hover { background-color: var(--wa-divider); }
+    .bus-item:active { background-color: var(--wa-border); }
 
-    .user-chip { display: flex; align-items: center; gap: 7px; font-size: 0.8rem; color: var(--text2); }
-    .user-chip img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--accent); object-fit: cover; }
-    .user-chip .uname { font-weight: 600; color: var(--text); }
-
-    .reminders-empty { text-align: center; padding: 60px 20px; color: var(--text3); }
-    .reminders-empty .big-icon { font-size: 3rem; margin-bottom: 12px; }
-    .reminders-empty p { font-size: 0.9rem; }
-
-    .reminder-card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 14px 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    .bus-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background-color: var(--wa-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; margin-right: 12px; flex-shrink: 0;
+      position: relative;
     }
-    .reminder-card .r-icon { font-size: 1.5rem; width: 44px; height: 44px; background: rgba(61,142,248,0.12); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .reminder-card .r-info { flex: 1; min-width: 0; }
-    .reminder-card .r-bus { font-weight: 700; color: #fff; font-size: 0.95rem; }
-    body.light-mode .reminder-card .r-bus { color: var(--text); }
-    .reminder-card .r-route { font-size: 0.8rem; color: var(--text2); }
-    .reminder-card .r-time { font-size: 0.78rem; color: var(--accent); font-weight: 600; margin-top: 2px; }
-    .reminder-card .r-actions { display: flex; gap: 6px; }
-
-    .toast-container {
-      position: fixed; bottom: 24px; right: 20px; z-index: 999; display: flex; flex-direction: column;
-      gap: 10px; max-width: 340px; pointer-events: none;
+    .bus-type-indicator {
+      position: absolute; bottom: 0; right: 0; width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid var(--wa-panel-bg);
     }
-    .toast {
-      background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius);
-      padding: 14px 16px; box-shadow: var(--shadow); display: flex; gap: 12px; align-items: flex-start;
-      animation: toastIn 0.3s ease; pointer-events: all;
+    .type-general { background-color: var(--wa-primary); }
+    .type-ktc { background-color: var(--wa-warning); }
+    .type-private { background-color: #8b5cf6; }
+
+    .bus-info {
+      flex: 1; min-width: 0; border-bottom: 1px solid var(--wa-divider);
+      padding-bottom: 12px; display: flex; flex-direction: column; justify-content: center;
+      height: 100%;
     }
-    .toast.reminder-toast { border-color: rgba(61,142,248,0.4); }
-    .toast .t-icon { font-size: 1.4rem; flex-shrink: 0; }
-    .toast .t-content .t-title { font-weight: 700; font-size: 0.9rem; color: #fff; }
-    .toast .t-content .t-body { font-size: 0.8rem; color: var(--text2); margin-top: 2px; }
-    .toast .t-close { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--text3); font-size: 1rem; line-height: 1; padding: 2px; flex-shrink: 0; }
-    @keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+    /* Remove border from last item */
+    .bus-item:last-child .bus-info { border-bottom: none; }
 
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 500;
-      display: flex; align-items: center; justify-content: center; padding: 20px;
+    .bus-row-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+    .bus-name { font-size: 1.05rem; font-weight: 600; color: var(--wa-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+    .bus-time { font-size: 0.75rem; color: var(--wa-text-secondary); flex-shrink: 0; margin-left: 8px;}
+
+    .bus-row-bottom { display: flex; justify-content: space-between; align-items: center; }
+    .bus-route { font-size: 0.85rem; color: var(--wa-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;}
+    .bus-badges { display: flex; gap: 6px; align-items: center; }
+
+    .wa-badge {
+      background-color: var(--wa-primary); color: #fff;
+      font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 10px;
     }
-    .modal {
-      background: var(--bg2); border: 1px solid var(--border2); border-radius: 20px;
-      padding: 28px; max-width: 420px; width: 100%; box-shadow: var(--shadow);
-      animation: modalIn 0.25s ease;
-    }
-    @keyframes modalIn { from { opacity:0; transform: scale(0.95) translateY(10px); } to { opacity:1; transform: scale(1) translateY(0); } }
-    .modal h3 { font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
-    .modal .modal-sub { font-size: 0.83rem; color: var(--text2); margin-bottom: 20px; }
-    .modal label { display: block; font-size: 0.78rem; color: var(--text2); margin-bottom: 5px; margin-top: 14px; }
-    .modal input, .modal select, .modal textarea {
-      width: 100%; padding: 10px 13px; border-radius: var(--radiusSm); border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04); color: var(--text); font-size: 0.85rem; font-family: inherit;
-      outline: none; transition: border-color 0.2s;
-    }
-    .modal input:focus, .modal select:focus { border-color: var(--accent); }
-    .modal select option { background: #1e293b; color: var(--text); }
-    .modal textarea { resize: vertical; min-height: 70px; }
-    .modal .btn-row { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+    .wa-badge.warning { background-color: var(--wa-warning); color: #000; }
+    .wa-badge.danger { background-color: var(--wa-danger); }
 
-    .lead-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-    .lead-chip {
-      padding: 5px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border);
-      background: var(--surface); color: var(--text2); cursor: pointer; font-family: inherit; transition: all 0.2s;
-    }
-    .lead-chip:hover { border-color: var(--accent); color: var(--accent); }
-    .lead-chip.selected { background: var(--accentGlow); border-color: var(--accent); color: var(--accent); }
-
-    .admin-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 18px; }
-    .admin-tab-btn {
-      padding: 7px 14px; border-radius: var(--radiusSm); border: 1px solid var(--border);
-      background: none; color: var(--text2); font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s;
-    }
-    .admin-tab-btn:hover { border-color: var(--border2); color: var(--text); }
-    .admin-tab-btn.active { background: var(--accentGlow); border-color: rgba(61,142,248,0.4); color: var(--accent); }
-    .admin-section { display: none; }
-    .admin-section.active { display: block; }
-
-    .section-header { display: flex; align-items: center; gap: 10px; padding: 16px 0 10px; }
-    .section-header h2 { font-size: 1rem; font-weight: 700; color: #fff; }
-    body.light-mode .section-header h2 { color: var(--text); }
-    .section-header .count { font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; background: var(--surface2); color: var(--text2); }
-
-    .hidden { display: none !important; }
-    .no-results { text-align: center; padding: 60px 20px; color: var(--text3); font-size: 0.9rem; }
-
-    @media (max-width: 600px) {
-      /* Base fonts and layout scaling */
-      html { font-size: 13px; }
-      
-      .header { height: 44px; padding: 0 10px; }
-      .logo { font-size: 0.95rem; }
-      .logo-icon { width: 28px; height: 28px; font-size: 0.9rem; }
-      #istClock { font-size: 0.72rem !important; }
-      
-      .header-right .btn { padding: 4px 8px; font-size: 0.68rem; }
-      .user-chip { padding: 2px 6px; font-size: 0.65rem; gap: 4px; }
-      .user-chip img { width: 18px; height: 18px; }
-      
-      .hero { margin: 10px 10px 0; padding: 12px 14px; border-radius: 12px; }
-      .hero-bus-icon { font-size: 2rem; }
-      .hero-text h2 { font-size: 0.65rem; letter-spacing: 1px; }
-      .hero-text .next-bus-info { font-size: 0.95rem; }
-      .hero-text .next-bus-route { font-size: 0.72rem; }
-      
-      .hero-countdown { margin-left: auto; width: auto; display: flex; align-items: center; gap: 8px; }
-      .countdown-ring-wrap { width: 50px; height: 50px; margin: 0; }
-      .countdown-ring-wrap svg { width: 100%; height: 100%; }
-      .countdown-mins { font-size: 1rem; }
-      .countdown-label { font-size: 0.45rem; letter-spacing: 0.5px; }
-      
-      .alert-bar { margin: 8px 10px 0; padding: 8px 12px; font-size: 0.75rem; border-radius: 8px; }
-      
-      .tabs-nav { padding: 10px 10px 0; gap: 2px; }
-      .tab-btn { padding: 6px 12px; font-size: 0.72rem; border-radius: 8px 8px 0 0; }
-      
-      .main { padding: 0 10px 85px; }
-      
-      .filter-strip { padding: 8px 0; gap: 6px; }
-      .search-wrap { min-width: 100%; }
-      .search-wrap input { padding: 6px 8px 6px 28px; font-size: 0.75rem; }
-      .search-wrap .search-icon { font-size: 0.75rem; left: 10px; }
-      .filter-strip select { padding: 6px 8px; font-size: 0.75rem; flex: 1; }
-      .result-count { font-size: 0.7rem; width: 100%; text-align: right; margin-top: 2px; }
-      
-      /* Cards scaling */
-      .bus-grid { gap: 8px; }
-      .bus-card { padding: 10px 12px; border-radius: 10px; }
-      .card-bus-no { font-size: 0.85rem; gap: 4px; }
-      .type-badge { font-size: 0.52rem; padding: 1px 5px; }
-      .card-route { font-size: 0.72rem; margin-top: 2px; }
-      .card-time { font-size: 1.15rem; }
-      .time-remaining { font-size: 0.65rem; }
-      .card-notes { font-size: 0.7rem; padding: 4px 8px; margin-top: 6px; border-radius: 4px; }
-      
-      .card-meta { gap: 4px; margin-top: 6px; }
-      .live-pill, .crowd-pill, .status-badge { font-size: 0.62rem; padding: 2px 6px; }
-      .verified-pill { font-size: 0.62rem; }
-      
-      .card-actions { gap: 4px; margin-top: 8px; }
-      .action-btn-pill { font-size: 0.65rem; padding: 4px 8px; }
-      
-      .comment-section { margin-top: 6px; padding-top: 6px; }
-      .comment-item { font-size: 0.68rem; margin-bottom: 4px; }
-      .comment-row input { padding: 4px 6px; font-size: 0.68rem; }
-      .comment-row button { padding: 4px 6px; font-size: 0.68rem; }
-      
-      /* Modals scaling */
-      .modal-content { padding: 16px; border-radius: 12px; max-width: 92%; }
-      .modal-header h3 { font-size: 1rem; }
-      .form-group label { font-size: 0.72rem; margin-bottom: 3px; }
-      .form-group input, .form-group select, .form-group textarea { padding: 6px 8px; font-size: 0.75rem; }
-      .modal-footer { margin-top: 14px; gap: 6px; }
-      .modal-footer .btn { padding: 6px 12px; font-size: 0.75rem; }
-      
-      /* Reminder list scaling */
-      .reminder-card { padding: 8px 10px; border-radius: 8px; }
-      .r-icon { font-size: 1rem; }
-      .r-bus { font-size: 0.75rem; }
-      .r-route { font-size: 0.68rem; }
-      .r-time { font-size: 0.68rem; }
-    }
-
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
-
-    /* Bottom Nav Styles */
+    /* === Bottom Nav === */
     .bottom-nav {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 56px;
-      background: rgba(15, 23, 42, 0.96);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 1000;
-      padding-bottom: env(safe-area-inset-bottom);
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-    }
-    body.light-mode .bottom-nav {
-      background: rgba(255, 255, 255, 0.96);
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background-color: var(--wa-panel-bg);
+      border-top: 1px solid var(--wa-divider);
+      display: flex; justify-content: space-around;
+      padding: 8px 0; padding-bottom: calc(8px + env(safe-area-inset-bottom));
+      z-index: 100;
     }
     .nav-item {
-      background: none; border: none;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      color: var(--text3);
-      font-family: inherit; font-size: 0.75rem; font-weight: 600;
-      cursor: pointer; flex: 1; height: 100%;
-      transition: color 0.2s, transform 0.15s;
+      display: flex; flex-direction: column; align-items: center;
+      color: var(--wa-text-secondary); font-size: 0.75rem; font-weight: 500;
+      background: none; border: none; cursor: pointer; flex: 1;
     }
-    .nav-item.active {
-      color: var(--accent);
+    .nav-item i { font-size: 1.4rem; margin-bottom: 4px; font-style: normal;}
+    .nav-item.active { color: var(--wa-primary); }
+    .nav-item.active i { font-weight: 700; }
+
+    /* === Views (Hidden/Show) === */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* === Forms & Inputs === */
+    .wa-form-container {
+      padding: 16px;
     }
-    .nav-icon {
-      font-size: 1.2rem; margin-bottom: 2px;
+    .wa-form-group { margin-bottom: 16px; }
+    .wa-label { display: block; font-size: 0.85rem; color: var(--wa-text-secondary); margin-bottom: 6px; font-weight: 500;}
+    .wa-input, .wa-select {
+      width: 100%; background-color: var(--wa-panel-bg); color: var(--wa-text-primary);
+      border: 1px solid var(--wa-divider); padding: 12px 14px; border-radius: 8px;
+      font-size: 1rem; outline: none; transition: border-color 0.2s;
     }
-    .nav-view {
-      display: block;
+    .wa-input:focus, .wa-select:focus { border-color: var(--wa-primary); }
+    .wa-btn {
+      width: 100%; background-color: var(--wa-primary); color: #fff;
+      border: none; padding: 14px; border-radius: 24px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .nav-view.hidden {
-      display: none !important;
+    .wa-btn:active { background-color: var(--wa-primary-dark); }
+    .wa-btn.danger { background-color: transparent; color: var(--wa-danger); border: 1px solid var(--wa-danger); }
+
+    /* Search Bar */
+    .search-bar-container {
+      padding: 8px 16px; background-color: var(--wa-panel-bg);
+      border-bottom: 1px solid var(--wa-divider);
+    }
+    .search-input-wrapper {
+      background-color: var(--wa-bg); border-radius: 8px;
+      display: flex; align-items: center; padding: 0 12px;
+    }
+    .search-input-wrapper input {
+      background: none; border: none; padding: 10px 8px; flex: 1;
+      color: var(--wa-text-primary); outline: none; font-size: 0.95rem;
     }
 
-    /* Clean, modern auth/settings styling */
-    .auth-card input, .admin-card input, .admin-card select, .admin-card textarea, #reportLiveModal input, #reportLiveModal select {
-      width: 100%;
-      padding: 10px 13px;
-      border-radius: var(--radiusSm);
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text);
-      font-size: 0.85rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-      margin-top: 4px;
-      margin-bottom: 12px;
+    /* Empty States */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 40px 20px; text-align: center; color: var(--wa-text-secondary);
     }
-    body.light-mode .auth-card input, body.light-mode .admin-card input, body.light-mode .admin-card select, body.light-mode .admin-card textarea, body.light-mode #reportLiveModal input, body.light-mode #reportLiveModal select {
-      background: rgba(0, 0, 0, 0.03);
-      color: var(--text);
+    .empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; font-style: normal;}
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
     }
-    .auth-card input:focus, .admin-card input:focus, .admin-card select:focus, .admin-card textarea:focus, #reportLiveModal input:focus, #reportLiveModal select:focus {
-      border-color: var(--accent);
-      background: rgba(255, 255, 255, 0.06);
-      box-shadow: 0 0 0 3px var(--accentGlow);
+    .modal-overlay.show { opacity: 1; pointer-events: auto; }
+    .modal-content {
+      background-color: var(--wa-panel-bg); width: 90%; max-width: 400px;
+      border-radius: var(--radius); overflow: hidden; transform: scale(0.95);
+      transition: transform 0.2s; display: flex; flex-direction: column;
     }
-    body.light-mode .auth-card input:focus, body.light-mode .admin-card input:focus, body.light-mode .admin-card select:focus, body.light-mode .admin-card textarea:focus, body.light-mode #reportLiveModal input:focus, body.light-mode #reportLiveModal select:focus {
-      background: rgba(0, 0, 0, 0.01);
+    .modal-overlay.show .modal-content { transform: scale(1); }
+    .modal-header { padding: 16px; font-size: 1.1rem; font-weight: 600; border-bottom: 1px solid var(--wa-divider); }
+    .modal-body { padding: 16px; max-height: 60vh; overflow-y: auto;}
+    .modal-footer { display: flex; border-top: 1px solid var(--wa-divider); }
+    .modal-btn {
+      flex: 1; padding: 14px; background: none; border: none; color: var(--wa-primary);
+      font-size: 0.95rem; font-weight: 600; cursor: pointer;
     }
-    .auth-card label, .admin-card label, #reportLiveModal label {
-      display: block;
-      font-size: 0.78rem;
-      color: var(--text2);
-      margin-top: 8px;
+    .modal-btn.cancel { color: var(--wa-text-secondary); border-right: 1px solid var(--wa-divider); }
+
+    /* Toasts */
+    .toast-container { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 8px; pointer-events: none;}
+    .toast {
+      background-color: rgba(34, 46, 53, 0.9); color: #fff; padding: 10px 16px;
+      border-radius: 20px; font-size: 0.85rem; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      animation: toastFade 0.3s ease; pointer-events: auto; text-align: center;
     }
-    .pending-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.65rem;
-      background: var(--yellowDim);
-      color: var(--yellow);
-      padding: 2px 8px;
-      border-radius: 20px;
-      font-weight: 700;
-      text-transform: uppercase;
-      margin-top: 4px;
-    }
+    body.light-mode .toast { background-color: rgba(0,0,0,0.8); }
+    @keyframes toastFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
   </style>
 </head>
 <body>
 
-<!-- Offline banner -->
-<div class="offline-banner">📵 You're offline — showing cached timetable</div>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-title">
+      🚌 CMSR Bus
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="themeToggleBtn">🌓</button>
+      <div id="sysTime" style="font-size: 0.8rem; font-variant-numeric: tabular-nums;">--:--</div>
+    </div>
+  </header>
 
-<header class="header">
-  <div class="logo">
-    <div class="logo-icon">🚌</div>
-    CMSR<span>Bus</span>
-  </div>
-  <div class="header-right">
-    <span id="istClock" style="font-size:0.72rem;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;letter-spacing:0.3px;white-space:nowrap;" title="Local System Time">--:-- --</span>
-    <button class="btn sm" id="themeToggle" title="Toggle theme">🌓</button>
-  </div>
-</header>
+  <!-- Views Container -->
+  <main class="app-main">
 
-<!-- View 1: Buses schedule list -->
-<div id="view-buses" class="nav-view">
-  <div id="alertBar" class="alert-bar">
-    <span>🚨</span>
-    <span id="alertMsg" class="alert-msg"></span>
-    <button class="close-alert" id="closeAlertBtn">×</button>
-  </div>
+    <!-- === VIEW: BUSES === -->
+    <div id="view-buses" class="view active">
 
-  <div class="hero" id="hero">
-    <div class="hero-inner">
-      <div class="hero-bus-icon">🚌</div>
-      <div class="hero-text">
-        <h2>Next Departure</h2>
-        <div class="next-bus-info" id="heroBusInfo">Loading...</div>
-        <div class="next-bus-route" id="heroBusRoute"></div>
-      </div>
-      <div class="hero-countdown" id="heroCountdown">
-        <div class="countdown-ring-wrap">
-          <svg width="90" height="90" viewBox="0 0 90 90">
-            <circle class="countdown-ring-bg" cx="45" cy="45" r="36"/>
-            <circle class="countdown-ring-fg" id="countdownRing" cx="45" cy="45" r="36"/>
-          </svg>
-          <div class="countdown-center">
-            <div class="countdown-mins" id="countdownMins">--</div>
-            <div class="countdown-label">min left</div>
-          </div>
+      <!-- Live Recommendation Banner -->
+      <div class="live-recommendation" id="liveRecommendation" style="display:none;" onclick="app.showBusDetails(app.nextBestBusId)">
+        <div class="live-icon-wrap">📍</div>
+        <div class="live-content">
+          <div class="live-title">Next Best Option</div>
+          <div class="live-desc" id="liveRecDesc">Loading...</div>
+        </div>
+        <div class="live-time">
+          <div id="liveRecTime">--:--</div>
+          <div id="liveRecMins" style="font-size:1.1rem; color:var(--wa-text-primary);">-- m</div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <nav class="tabs-nav">
-    <button class="tab-btn active" data-tab="schedule" id="scheduleTab">📅 Schedule</button>
-    <button class="tab-btn" data-tab="reminders" id="remindersTab">🔔 Reminders <span id="reminderBadge" class="hidden" style="background:var(--red);color:#fff;font-size:0.6rem;padding:1px 5px;border-radius:10px;"></span></button>
-    <button class="tab-btn" data-tab="favorites" id="favoritesTab">⭐ Favorites</button>
+      <div class="wa-tabs">
+        <div class="wa-tab active" data-tab="all">All Buses</div>
+        <div class="wa-tab" data-tab="fav">Favorites</div>
+      </div>
+
+      <div class="search-bar-container">
+        <div class="search-input-wrapper">
+          <span style="color:var(--wa-text-muted);">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search route, time, or bus number..." />
+        </div>
+      </div>
+
+      <!-- Bus List -->
+      <div class="bus-list" id="busListContainer">
+        <!-- JS populated -->
+      </div>
+
+      <div id="emptyListState" class="empty-state" style="display:none;">
+        <i>🚏</i>
+        <h3>No buses found</h3>
+        <p style="margin-top:8px; font-size:0.9rem;">Try adjusting your search or add a new timing.</p>
+      </div>
+
+    </div>
+
+    <!-- === VIEW: ADD BUS === -->
+    <div id="view-add" class="view">
+      <div class="wa-form-container">
+        <h2 style="margin-bottom: 20px; color: var(--wa-text-primary);">Add New Timing</h2>
+
+        <div class="wa-form-group">
+          <label class="wa-label">Bus Number</label>
+          <input type="text" id="addBusNo" class="wa-input" placeholder="e.g. 9424 or KTC" />
+        </div>
+
+        <div class="wa-form-group">
+          <label class="wa-label">Route Origin</label>
+          <input type="text" id="addFrom" class="wa-input" placeholder="e.g. CMSR College" />
+        </div>
+
+        <div class="wa-form-group">
+          <label class="wa-label">Route Destination</label>
+          <input type="text" id="addTo" class="wa-input" placeholder="e.g. Kamat Bus Stand" />
+        </div>
+
+        <div class="wa-form-group">
+          <label class="wa-label">Departure Time</label>
+          <input type="time" id="addTime" class="wa-input" />
+        </div>
+
+        <div class="wa-form-group">
+          <label class="wa-label">Bus Type</label>
+          <select id="addType" class="wa-select">
+            <option value="general">General</option>
+            <option value="ktc">KTC</option>
+            <option value="private">Private</option>
+          </select>
+        </div>
+
+        <div class="wa-form-group">
+          <label class="wa-label">Notes (Optional)</label>
+          <input type="text" id="addNotes" class="wa-input" placeholder="e.g. Via Benaulim" />
+        </div>
+
+        <button id="addSaveBtn" class="wa-btn">Save Bus Timing</button>
+      </div>
+    </div>
+
+    <!-- === VIEW: ACCOUNT / AUTH === -->
+    <div id="view-account" class="view">
+      <div class="wa-form-container">
+
+        <!-- Logged Out State -->
+        <div id="authContainer">
+          <div style="text-align:center; margin-bottom: 30px; margin-top:20px;">
+            <div style="width:80px; height:80px; background:var(--wa-primary); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2.5rem; margin:0 auto 16px;">👤</div>
+            <h2 style="color: var(--wa-text-primary);">Welcome Back</h2>
+            <p style="color: var(--wa-text-secondary); font-size:0.9rem; margin-top:8px;">Sign in to save favorites and add bus timings.</p>
+          </div>
+
+          <div class="wa-form-group">
+            <label class="wa-label">Email</label>
+            <input type="email" id="authEmail" class="wa-input" placeholder="name@domain.com" />
+          </div>
+          <div class="wa-form-group">
+            <label class="wa-label">Password</label>
+            <input type="password" id="authPassword" class="wa-input" placeholder="••••••••" />
+          </div>
+
+          <button id="authLoginBtn" class="wa-btn" style="margin-bottom: 12px;">Sign In</button>
+          <button id="authSignupBtn" class="wa-btn" style="background-color: var(--wa-panel-bg); color: var(--wa-primary); border: 1px solid var(--wa-primary);">Create Account</button>
+        </div>
+
+        <!-- Logged In State -->
+        <div id="profileContainer" style="display:none;">
+          <div style="text-align:center; margin-bottom: 30px; margin-top:20px;">
+            <img id="profileImg" src="" style="width:90px; height:90px; border-radius:50%; object-fit:cover; margin-bottom:16px; border: 3px solid var(--wa-primary);" />
+            <h2 id="profileName" style="color: var(--wa-text-primary);">User Name</h2>
+            <p id="profileEmail" style="color: var(--wa-text-secondary); font-size:0.9rem; margin-top:4px;">user@test.com</p>
+          </div>
+
+          <div style="background-color: var(--wa-panel-bg); border-radius: var(--radius); overflow:hidden; margin-bottom:20px;">
+             <div style="padding: 16px; border-bottom: 1px solid var(--wa-divider); display:flex; justify-content:space-between;">
+               <span style="color:var(--wa-text-primary);">Role</span>
+               <span id="profileRole" style="color:var(--wa-primary); font-weight:600;">Contributor</span>
+             </div>
+             <div style="padding: 16px; display:flex; justify-content:space-between;">
+               <span style="color:var(--wa-text-primary);">App Version</span>
+               <span style="color:var(--wa-text-secondary);">2.0 (WhatsApp UX)</span>
+             </div>
+          </div>
+
+          <button id="authLogoutBtn" class="wa-btn danger">Log Out</button>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-view="buses">
+      <i>💬</i>
+      <span>Buses</span>
+    </button>
+    <button class="nav-item" data-view="add">
+      <i>➕</i>
+      <span>Add</span>
+    </button>
+    <button class="nav-item" data-view="account">
+      <i>⚙️</i>
+      <span>Settings</span>
+    </button>
   </nav>
 
-  <div class="main">
-    <div class="tab-panel active" id="panel-schedule">
-      <div class="filter-strip">
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" placeholder="Search bus no., route, notes..." autocomplete="off" />
-        </div>
-        <select id="filterFrom"><option value="all">All Origins</option></select>
-        <select id="filterTo"><option value="all">All Destinations</option></select>
-        <select id="filterType">
-          <option value="all">All Types</option>
-          <option value="general">General</option>
-          <option value="ktc">KTC</option>
-          <option value="private">Private</option>
-        </select>
-        <button class="btn sm" id="clearFiltersBtn">Clear</button>
-        <span class="result-count" id="resultCount"></span>
-      </div>
-      <div class="bus-grid" id="busList"></div>
-      <div class="no-results hidden" id="noResults">No buses match your filters 🚏</div>
-    </div>
+  <!-- === Bus Action Modal === -->
+  <div class="modal-overlay" id="busActionModal">
+    <div class="modal-content">
+      <div class="modal-header" id="modalBusTitle">Bus Details</div>
+      <div class="modal-body">
+        <p id="modalBusRoute" style="color:var(--wa-text-secondary); font-size:0.9rem; margin-bottom:16px;">Route details...</p>
 
-    <div class="tab-panel" id="panel-reminders">
-      <div class="section-header"><h2>🔔 My Reminders</h2></div>
-      <div id="remindersList"></div>
-      <div id="remindersEmpty" class="reminders-empty hidden">
-        <div class="big-icon">🔔</div>
-        <p>No reminders set yet.<br/>Click the <strong>🔔 Remind Me</strong> button on any bus card.</p>
-      </div>
-    </div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <button class="wa-btn" id="modalBtnFav" style="background-color: var(--wa-panel-bg); color: var(--wa-text-primary); border: 1px solid var(--wa-divider); justify-content:flex-start;">
+            ⭐ Toggle Favorite
+          </button>
 
-    <div class="tab-panel" id="panel-favorites">
-      <div class="section-header"><h2>⭐ Favorite Buses</h2></div>
-      <div class="bus-grid" id="favList"></div>
-      <div id="favEmpty" class="no-results hidden">No favorites yet. Star a bus to save it here.</div>
-    </div>
-  </div>
-</div>
-
-<!-- View 2: Add timing / Admin dashboard -->
-<div id="view-add" class="nav-view hidden">
-  <div class="main" style="max-width: 600px; margin: 20px auto; padding-bottom: 90px;">
-    <div class="admin-card" style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow);">
-      <h3 id="panelTitle" style="font-size:1.3rem; font-weight:800; color:#fff; margin-bottom:15px; display:flex; align-items:center; gap:8px;">⚙️ Admin Timing Dashboard</h3>
-      
-      <div class="admin-tabs" style="margin-bottom:20px; display:flex; flex-wrap:wrap; gap:6px;" id="adminTabsGroup">
-        <button class="admin-tab-btn active" data-atab="add">➕ Add Bus</button>
-        <button class="admin-tab-btn" data-atab="edit" id="tabBtnEdit">✏️ Edit Bus</button>
-        <button class="admin-tab-btn" data-atab="alerts" id="tabBtnAlerts">🚨 Alerts</button>
-        <button class="admin-tab-btn" data-atab="live" id="tabBtnLive">📍 Live Update</button>
-      </div>
-
-      <!-- Add Bus -->
-      <div id="atab-add" class="admin-section active">
-        <label>Bus Number</label><input type="text" id="admAddBusNo" placeholder="e.g. 9424">
-        <label>Type</label>
-        <select id="admAddType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
-        <label>Route</label>
-        <select id="admAddRoute">
-          <option value="CMSR-KTC">CMSR to KTC</option>
-          <option value="CMSR-Kamat">CMSR to Kamat</option>
-          <option value="KTC-Varca">KTC to Varca</option>
-        </select>
-        <label>Time (HH:MM)</label><input type="time" id="admAddTime">
-        <label>Notes</label><textarea id="admAddNotes" placeholder="Optional notes..."></textarea>
-        <div style="margin-top:14px;">
-          <button class="btn sm green-btn" id="admSaveAdd" style="width:100%; justify-content:center; height:40px;">Save Bus Timing</button>
+          <button class="wa-btn danger" id="modalBtnDelete" style="display:none; justify-content:flex-start;">
+            🗑 Delete Bus (Admin)
+          </button>
         </div>
       </div>
-
-      <!-- Edit Bus -->
-      <div id="atab-edit" class="admin-section">
-        <label>Select Bus</label><select id="admEditSelect"><option value="">-- Choose a bus --</option></select>
-        <label>Bus Number</label><input type="text" id="admEditBusNo">
-        <label>Type</label>
-        <select id="admEditType"><option value="general">General</option><option value="ktc">KTC</option><option value="private">Private</option></select>
-        <label>Route</label>
-        <select id="admEditRoute">
-          <option value="CMSR-KTC">CMSR to KTC</option>
-          <option value="CMSR-Kamat">CMSR to Kamat</option>
-          <option value="KTC-Varca">KTC to Varca</option>
-        </select>
-        <label>Time (HH:MM)</label><input type="time" id="admEditTime">
-        <label>Notes</label><textarea id="admEditNotes"></textarea>
-        <div style="display:flex; gap:8px; margin-top:14px;">
-          <button class="btn sm danger" id="admDeleteBus" style="flex:1; justify-content:center;">🗑 Delete</button>
-          <button class="btn sm green-btn" id="admSaveEdit" style="flex:2; justify-content:center;">Update Details</button>
-        </div>
-      </div>
-
-      <!-- Alerts -->
-      <div id="atab-alerts" class="admin-section">
-        <label>Alert Message (shown to all users)</label><input type="text" id="admAlertMsg" placeholder="e.g. Bus 9424 delayed by 20 min today">
-        <div style="display:flex; gap:8px; margin-top:14px;">
-          <button class="btn sm danger" id="admClearAlert" style="flex:1; justify-content:center;">Clear Alert</button>
-          <button class="btn sm accent" id="admSetAlert" style="flex:2; justify-content:center;">Set Alert Announcement</button>
-        </div>
-      </div>
-
-      <!-- Live Update -->
-      <div id="atab-live" class="admin-section">
-        <label>Select Bus</label><select id="admLiveSelect"><option value="">-- Choose a bus --</option></select>
-        <label>Live Status</label><select id="admLiveStatus"><option value="on-time">On Time</option><option value="delayed">Delayed</option><option value="early">Early</option></select>
-        <label>Current Location</label><input type="text" id="admLiveLocation" placeholder="e.g. Near Margao KTC">
-        <label>Delay (minutes)</label><input type="number" id="admLiveDelay" value="0" min="0">
-        <label>Crowd Level</label><select id="admLiveCrowd"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
-        <div style="margin-top:14px;">
-          <button class="btn sm green-btn" id="admSaveLive" style="width:100%; justify-content:center; height:40px;">Update Live Data</button>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- View 3: Auth & Account profile -->
-<div id="view-account" class="nav-view hidden">
-  <div class="main" style="max-width: 480px; margin: 20px auto; padding-bottom: 90px;">
-    <!-- Profile Card (Logged In) -->
-    <div id="profileCard" class="profile-card hidden" style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; text-align:center; box-shadow:var(--shadow);">
-      <div id="profileAvatarContainer" style="margin-bottom:14px;">
-        <img id="profileAvatar" src="" style="width:72px; height:72px; border-radius:50%; border:3px solid var(--accent); object-fit:cover; display:inline-block;" />
-      </div>
-      <h3 id="profileName" style="font-size:1.3rem; font-weight:800; color:#fff; margin-bottom:4px;">User Name</h3>
-      <p id="profileEmail" style="font-size:0.85rem; color:var(--text2); margin-bottom:12px;">user@domain.com</p>
-      <div id="profileRoleBadge" style="display:inline-block; font-size:0.7rem; font-weight:700; color:var(--accent); background:var(--accentGlow); padding:4px 12px; border-radius:20px; margin-bottom:24px;">Standard User</div>
-      
-      <button id="accountSignOutBtn" class="btn danger" style="width:100%; justify-content:center; height:44px;">
-        🚪 Sign Out Account
-      </button>
-    </div>
-
-    <!-- Auth Card (Logged Out) -->
-    <div id="authCard" class="auth-card" style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow);">
-      <div style="text-align:center; margin-bottom: 24px;">
-        <div style="font-size: 2.5rem; margin-bottom: 8px;">👤</div>
-        <h3 id="authTitleText" style="font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 4px;">Sign In to CMSR Bus</h3>
-        <p style="font-size: 0.82rem; color: var(--text2);">Access your favorites, personalized notifications, and real-time status reporting.</p>
-      </div>
-
-      <!-- Google Login -->
-      <button id="authGoogleBtn" class="btn accent" style="width: 100%; justify-content: center; height: 44px; margin-bottom: 16px;">
-        <svg style="width:18px; height:18px; margin-right:8px;" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" color="#4285F4"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" color="#34A853"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" color="#FBBC05"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" color="#EA4335"/></svg>
-        Sign in with Google
-      </button>
-
-      <div style="display:flex; align-items:center; margin: 20px 0; color: var(--text3); font-size:0.75rem;">
-        <hr style="flex:1; border:none; border-top:1px solid var(--border);"/>
-        <span style="padding:0 8px;">OR EMAIL LOGIN</span>
-        <hr style="flex:1; border:none; border-top:1px solid var(--border);"/>
-      </div>
-
-      <!-- Email Auth View -->
-      <div id="emailAuthView">
-        <label>Email Address</label>
-        <input type="email" id="authEmail" placeholder="name@domain.com">
-        
-        <div id="authPasswordGroup">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label style="margin:0;">Password</label>
-            <a href="#" id="authForgotBtn" style="font-size:0.75rem; color:var(--text3); text-decoration:none;">Forgot?</a>
-          </div>
-          <input type="password" id="authPassword" placeholder="••••••••">
-        </div>
-
-        <button id="authSubmitBtn" class="btn outline" style="width:100%; justify-content:center; height:44px; margin-bottom:12px;">
-          Sign In with Email
-        </button>
-
-        <div style="text-align:center; font-size:0.8rem; color:var(--text2);">
-          <span id="authToggleText">Don't have an account?</span>
-          <a href="#" id="authToggleBtn" style="color:var(--accent); text-decoration:none; font-weight:600; margin-left:4px;">Sign Up</a>
-        </div>
-      </div>
-
-      <!-- Forgot Password View -->
-      <div id="forgotPasswordView" class="hidden">
-        <label>Enter your email address</label>
-        <input type="email" id="resetEmail" placeholder="name@domain.com">
-        
-        <button id="authResetSubmitBtn" class="btn accent" style="width:100%; justify-content:center; height:44px; margin-bottom:12px;">
-          Send Reset Link
-        </button>
-
-        <div style="text-align:center; font-size:0.8rem;">
-          <a href="#" id="authBackToLoginBtn" style="color:var(--accent); text-decoration:none; font-weight:600;">Back to Login</a>
-        </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick="app.closeModal('busActionModal')">Close</button>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Bottom Navigation Bar (WhatsApp style) -->
-<div class="bottom-nav">
-  <button class="nav-item active" data-nav="buses" id="navItemBuses">
-    <span class="nav-icon">🚌</span>
-    <span class="nav-label">Buses</span>
-  </button>
-  <button class="nav-item hidden" data-nav="add" id="navItemAdd">
-    <span class="nav-icon">➕</span>
-    <span class="nav-label">Add Timing</span>
-  </button>
-  <button class="nav-item" data-nav="account" id="navItemAccount">
-    <span class="nav-icon" id="navAccountIcon">👤</span>
-    <span class="nav-label">Account</span>
-  </button>
-</div>
-
-<div id="reminderModal" class="modal-overlay hidden">
-  <div class="modal">
-    <h3>🔔 Set a Reminder</h3>
-    <p class="modal-sub" id="reminderModalSub">Bus Timing details</p>
-    <label>Remind me how many minutes before?</label>
-    <div class="lead-chips">
-      <button class="lead-chip selected" data-mins="5">5 min</button>
-      <button class="lead-chip" data-mins="10">10 min</button>
-      <button class="lead-chip" data-mins="15">15 min</button>
-      <button class="lead-chip" data-mins="20">20 min</button>
-      <button class="lead-chip" data-mins="30">30 min</button>
-    </div>
-    <label>Repeat every day?</label>
-    <select id="reminderRepeat">
-      <option value="daily">Every day (Daily)</option>
-      <option value="once">One time only</option>
-    </select>
-    <div class="btn-row">
-      <button class="btn sm" id="reminderCancelBtn">Cancel</button>
-      <button class="btn sm accent" id="reminderSaveBtn">🔔 Set Reminder</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     REPORT LIVE / SETTINGS MODAL
-══════════════════════════════════════ -->
-<div id="reportLiveModal" class="modal-overlay hidden">
-  <div class="modal" style="max-width:400px;">
-    <h3>⚙️ Bus Settings &amp; Reporting</h3>
-    <p class="modal-sub" id="reportLiveModalSub">Bus Timing Details</p>
-    
-    <div style="margin-bottom:14px;">
-      <button class="btn sm green-btn" id="reportVerifyBtn" style="width:100%; justify-content:center;">verify departure (Confirm Active)</button>
-    </div>
-
-    <div style="border-top: 1px solid var(--border); padding-top:14px;">
-      <h4 style="font-size:0.9rem; font-weight:700; margin-bottom:10px; color:#fff;">Report Live Status</h4>
-      
-      <label>Live Status</label>
-      <select id="repLiveStatus">
-        <option value="on-time">On Time</option>
-        <option value="delayed">Delayed</option>
-        <option value="early">Early</option>
-      </select>
-
-      <label>Delay (minutes)</label>
-      <input type="number" id="repLiveDelay" value="0" min="0">
-
-      <label>Current Location</label>
-      <input type="text" id="repLiveLocation" placeholder="e.g. Passing Kamat Stand">
-
-      <label>Crowd Level</label>
-      <select id="repLiveCrowd">
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
-        <option value="high">High</option>
-      </select>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn sm" id="reportLiveCancelBtn">Cancel</button>
-      <button class="btn sm accent" id="reportLiveSaveBtn">Save Report</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast-container" id="toastContainer"></div>
-
-<script>
-  // ════════════════════════════════════════
-  // FIREBASE CONFIGURATION
-  // ════════════════════════════════════════
-  const firebaseConfig = {
-    apiKey: "AIzaSyDSeRWOqJWvIJjFhSG-5NrRvYtuTNevqOA",
-    authDomain: "zevbuild.firebaseapp.com",
-    databaseURL: "https://zevbuild-default-rtdb.firebaseio.com",
-    projectId: "zevbuild",
-    storageBucket: "zevbuild.firebasestorage.app",
-    messagingSenderId: "1088713528432",
-    appId: "1:1088713528432:web:862382454428a2f79090b5",
-    measurementId: "G-5MQ26F7GQE"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db   = firebase.firestore();
-
-  // ════════════════════════════════════════
-  // SEED DATA — Restored for cloud sync
-  // ════════════════════════════════════════
-  const SEED = [
-    { "id":"s1",   "busNo":"9424",        "type":"general",  "from":"Varca",                     "to":"ACMSR College",            "time":"07:00", "notes":"Morning via KTC",                                            "verified":[] },
-    { "id":"s2",   "busNo":"4209",        "type":"general",  "from":"Varca",                     "to":"ACMSR College",            "time":"11:00", "notes":"",                                                           "verified":[] },
-    { "id":"s3",   "busNo":"9424",        "type":"general",  "from":"Varca",                     "to":"ACMSR College",            "time":"11:15", "notes":"",                                                           "verified":["a","b","c","d","e"] },
-    { "id":"s4",   "busNo":"1747",        "type":"general",  "from":"Varca",                     "to":"ACMSR College",            "time":"11:44", "notes":"Flacy Route",                                                "verified":[] },
-    { "id":"s5",   "busNo":"?",           "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"11:15", "notes":"Bus no. not confirmed yet ✏️",                               "verified":["a","b","c"] },
-    { "id":"s6",   "busNo":"?",           "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"11:36", "notes":"Bus no. not confirmed yet ✏️",                               "verified":[] },
-    { "id":"s7",   "busNo":"?",           "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"12:30", "notes":"Bus no. not confirmed yet ✏️",                               "verified":[] },
-    { "id":"s8",   "busNo":"4209",        "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"12:55", "notes":"✅ Bus 4209 confirmed",                                      "verified":["x","y"] },
-    { "id":"s9",   "busNo":"?",           "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"13:30", "notes":"⭐ BEST — catch 1:42 or 2:10 PM Kamat→Mobor bus",           "verified":["a","b","c","d","e","f"] },
-    { "id":"s10",  "busNo":"?",           "type":"general",  "from":"ACMSR College",             "to":"Kamat Bus Stand",          "time":"14:40", "notes":"Last College→Kamat bus",                                    "verified":[] },
-    { "id":"s11",  "busNo":"5463",        "type":"general",  "from":"Kamat",                     "to":"Varca",                    "time":"11:38", "notes":"",                                                           "verified":[] },
-    { "id":"s12",  "busNo":"9424",        "type":"general",  "from":"Kamat",                     "to":"Varca",                    "time":"12:47", "notes":"",                                                           "verified":[] },
-    { "id":"s13",  "busNo":"4209",        "type":"general",  "from":"Kamat",                     "to":"Varca",                    "time":"13:42", "notes":"",                                                           "verified":[] },
-    { "id":"s14",  "busNo":"1747",        "type":"general",  "from":"Kamat",                     "to":"Varca",                    "time":"13:50", "notes":"⚡ Tight if catching 1:30 bus",                              "verified":[] },
-    { "id":"s15",  "busNo":"5463",        "type":"general",  "from":"Kamat",                     "to":"Varca",                    "time":"14:10", "notes":"✅ Safe after 1:30 college bus",                             "verified":["a","b","c"] },
-    { "id":"s16",  "busNo":"KTC",         "type":"ktc",      "from":"Varca",                     "to":"KTC Bus Stand",            "time":"07:00", "notes":"Morning KTC service",                                        "verified":[] },
-    { "id":"s17",  "busNo":"KTC",         "type":"ktc",      "from":"KTC Bus Stand",             "to":"Margao",                   "time":"08:30", "notes":"",                                                           "verified":[] },
-    { "id":"s18",  "busNo":"7721",        "type":"general",  "from":"ACMSR College",             "to":"Margao",                   "time":"13:00", "notes":"Via Navelim",                                                "verified":[] },
-    { "id":"s20",  "busNo":"5463",        "type":"general",  "from":"ACMSR College",             "to":"Kamat",                    "time":"16:40", "notes":"Evening bus",                                                "verified":[] },
-    { "id":"s21",  "busNo":"MOB1",        "type":"general",  "from":"Mobor",                     "to":"Margao",                   "time":"07:30", "notes":"Arrives Margao ~8:40 AM",                                   "verified":[] },
-    { "id":"s22",  "busNo":"MOB2",        "type":"general",  "from":"Mobor",                     "to":"Margao",                   "time":"09:55", "notes":"Arrives Margao ~11:30 AM",                                  "verified":[] },
-    { "id":"s23",  "busNo":"MOB3",        "type":"general",  "from":"Mobor",                     "to":"Margao",                   "time":"13:05", "notes":"Arrives Margao ~3:00 PM",                                   "verified":[] },
-    { "id":"s24",  "busNo":"MOB4",        "type":"general",  "from":"Mobor",                     "to":"Margao",                   "time":"16:45", "notes":"Arrives Margao ~5:50 PM",                                   "verified":[] },
-    { "id":"s25",  "busNo":"MOB1",        "type":"general",  "from":"Margao",                    "to":"Mobor",                    "time":"08:40", "notes":"Departs after 7:30 AM Mobor bus",                           "verified":[] },
-    { "id":"s26",  "busNo":"MOB2",        "type":"general",  "from":"Margao",                    "to":"Mobor",                    "time":"11:30", "notes":"Departs after 9:55 AM Mobor bus",                           "verified":[] },
-    { "id":"s27",  "busNo":"MOB3",        "type":"general",  "from":"Margao",                    "to":"Mobor",                    "time":"15:00", "notes":"Departs after 1:05 PM Mobor bus",                           "verified":[] },
-    { "id":"s28",  "busNo":"MOB4",        "type":"general",  "from":"Margao",                    "to":"Mobor",                    "time":"17:50", "notes":"Departs after 4:45 PM Mobor bus",                           "verified":[] },
-    { "id":"s43",  "busNo":"?",           "type":"general",  "from":"Kamat",                     "to":"Mobor",                    "time":"11:38", "notes":"Via Benaulim & Cavelossim",                                 "verified":[] },
-    { "id":"s44",  "busNo":"?",           "type":"general",  "from":"Kamat",                     "to":"Mobor",                    "time":"12:47", "notes":"Via Benaulim & Cavelossim",                                 "verified":[] },
-    { "id":"s45",  "busNo":"?",           "type":"general",  "from":"Kamat",                     "to":"Mobor",                    "time":"13:42", "notes":"Via Benaulim & Cavelossim",                                 "verified":[] },
-    { "id":"s46",  "busNo":"?",           "type":"general",  "from":"Kamat",                     "to":"Mobor",                    "time":"13:50", "notes":"⚡ Tight — only if 1:30 PM college bus on time",            "verified":[] },
-    { "id":"s47",  "busNo":"?",           "type":"general",  "from":"Kamat",                     "to":"Mobor",                    "time":"14:10", "notes":"✅ Safe connection after 1:30 PM College bus",               "verified":[] },
-    { "id":"s29",  "busNo":"MRG-69",      "type":"ktc",      "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"07:15", "notes":"Arrives KTC ~7:30 AM · Kadamba govt bus",                  "verified":[] },
-    { "id":"s32",  "busNo":"MRG-138",     "type":"ktc",      "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"08:50", "notes":"Arrives KTC ~9:05 AM · Kadamba govt bus",                  "verified":[] },
-    { "id":"s35",  "busNo":"MRG-374MB",   "type":"ktc",      "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"12:10", "notes":"Arrives KTC ~12:25 PM · Kadamba govt bus",                 "verified":[] },
-    { "id":"s38",  "busNo":"MRG-138",     "type":"ktc",      "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"14:20", "notes":"Arrives KTC ~2:35 PM · Kadamba govt bus (2nd trip)",       "verified":[] },
-    { "id":"s41",  "busNo":"MRG-66",      "type":"ktc",      "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"16:30", "notes":"Arrives KTC ~4:45 PM · Kadamba govt bus",                  "verified":[] },
-    { "id":"s30",  "busNo":"PVT-CUR01",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"07:45", "notes":"Arrives KTC ~8:00 AM · via Curtorim",                      "verified":[] },
-    { "id":"s31",  "busNo":"PVT-PNI31",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"08:21", "notes":"Arrives KTC ~8:35 AM · via Panaji route",                  "verified":[] },
-    { "id":"s33",  "busNo":"PVT-MAI05",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"09:15", "notes":"Arrives KTC ~9:30 AM · via Maina",                         "verified":[] },
-    { "id":"s34",  "busNo":"PVT-CUR02",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"10:30", "notes":"Arrives KTC ~10:45 AM · via Curtorim",                     "verified":[] },
-    { "id":"s36",  "busNo":"PVT-PNI31",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"13:15", "notes":"Arrives KTC ~1:30 PM · via Panaji route (2nd)",            "verified":[] },
-    { "id":"s37",  "busNo":"PVT-CUR03",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"13:45", "notes":"Arrives KTC ~2:00 PM · via Curtorim",                      "verified":[] },
-    { "id":"s39",  "busNo":"PVT-MAI08",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"15:45", "notes":"Arrives KTC ~4:00 PM · via Maina",                         "verified":[] },
-    { "id":"s40",  "busNo":"PVT-CUR04",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"17:15", "notes":"Arrives KTC ~5:30 PM · via Curtorim",                      "verified":[] },
-    { "id":"s42",  "busNo":"PVT-PNI31",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"18:10", "notes":"Arrives KTC ~6:25 PM · via Panaji route (3rd)",            "verified":[] },
-    { "id":"s43b", "busNo":"PVT-CUR05",   "type":"private",  "from":"ACMSR College (Borda)",      "to":"Margao KTC Bus Stand",     "time":"19:00", "notes":"Arrives KTC ~7:15 PM · via Curtorim",                      "verified":[] }
-  ];
-
-  // ════════════════════════════════════════
-  // OFFLINE PERSISTENCE
-  // ════════════════════════════════════════
-  db.settings({
-    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
-  });
-  db.enablePersistence({ synchronizeTabs: true }).catch(err => {
-    console.warn("Firestore persistence failed to enable:", err.code);
-  });
-
-  // ════════════════════════════════════════
-  // STATE
-  // ════════════════════════════════════════
-  let allBuses       = [];
-  let liveDataMap    = {};
-  let commentsMap    = {};
-  let favoritesSet   = new Set();
-  let currentUser    = null;
-  let isAdmin        = false;
-  let firestoreReady = false;
-  let activeTab      = 'schedule';
-
-  let reminders = JSON.parse(localStorage.getItem('cmsrReminders') || '{}');
-  let reminderTimers = {};
-
-  const ADMIN_EMAIL = 'zevbuildstudio@gmail.com';
-
-  // ════════════════════════════════════════
-  // DOM REFS
-  // ════════════════════════════════════════
-  const $busList      = document.getElementById('busList');
-  const $favList      = document.getElementById('favList');
-  const $noResults    = document.getElementById('noResults');
-  const $favEmpty     = document.getElementById('favEmpty');
-  const $resultCount  = document.getElementById('resultCount');
-  const $searchInput  = document.getElementById('searchInput');
-  const $filterType   = document.getElementById('filterType');
-  const $filterFrom   = document.getElementById('filterFrom');
-  const $filterTo     = document.getElementById('filterTo');
-  const $heroBusInfo  = document.getElementById('heroBusInfo');
-  const $heroBusRoute = document.getElementById('heroBusRoute');
-  const $countdownRing= document.getElementById('countdownRing');
-  const $countdownMins= document.getElementById('countdownMins');
-  const $alertBar     = document.getElementById('alertBar');
-  const $alertMsg     = document.getElementById('alertMsg');
-  const $reminderBadge= document.getElementById('reminderBadge');
-  const $themeToggle  = document.getElementById('themeToggle');
-
-  // Bottom Navigation Refs
-  const $navBuses     = document.getElementById('navItemBuses');
-  const $navAdd       = document.getElementById('navItemAdd');
-  const $navAccount   = document.getElementById('navItemAccount');
-  const $viewBuses    = document.getElementById('view-buses');
-  const $viewAdd      = document.getElementById('view-add');
-  const $viewAccount  = document.getElementById('view-account');
-
-  // Auth Card & Profile Card Refs
-  const $authCard          = document.getElementById('authCard');
-  const $profileCard       = document.getElementById('profileCard');
-  const $profileAvatar     = document.getElementById('profileAvatar');
-  const $profileName       = document.getElementById('profileName');
-  const $profileEmail      = document.getElementById('profileEmail');
-  const $profileRoleBadge  = document.getElementById('profileRoleBadge');
-  const $accountSignOutBtn = document.getElementById('accountSignOutBtn');
-
-  // Auth Refs (fallback helper mock to prevent TypeErrors in old scripts)
-  const $authModal          = { classList: { add: () => {}, remove: () => {} }, addEventListener: () => {} };
-  const $loginBtn           = { classList: { add: () => {}, remove: () => {} } };
-  const $logoutBtn          = { classList: { add: () => {}, remove: () => {} } };
-  const $addBusBtn          = { classList: { add: () => {}, remove: () => {} } };
-  const $adminBtn           = { classList: { add: () => {}, remove: () => {} } };
-  const $userChip           = { classList: { add: () => {}, remove: () => {} } };
-  const $authGoogleBtn      = document.getElementById('authGoogleBtn');
-  const $emailAuthView      = document.getElementById('emailAuthView');
-  const $forgotPasswordView = document.getElementById('forgotPasswordView');
-  const $authEmail          = document.getElementById('authEmail');
-  const $authPassword       = document.getElementById('authPassword');
-  const $authSubmitBtn      = document.getElementById('authSubmitBtn');
-  const $authToggleBtn      = document.getElementById('authToggleBtn');
-  const $authToggleText     = document.getElementById('authToggleText');
-  const $authForgotBtn      = document.getElementById('authForgotBtn');
-  const $authCloseBtn       = { classList: { add: () => {}, remove: () => {} }, addEventListener: () => {} };
-  const $resetEmail         = document.getElementById('resetEmail');
-  const $authResetSubmitBtn = document.getElementById('authResetSubmitBtn');
-  const $authBackToLoginBtn = document.getElementById('authBackToLoginBtn');
-
-  // Inject dummy adminModal div to prevent TypeErrors in edit/save callbacks
-  if (!document.getElementById('adminModal')) {
-    const dummy = document.createElement('div');
-    dummy.id = 'adminModal';
-    dummy.style.display = 'none';
-    document.body.appendChild(dummy);
-  }
-
-  // Bottom Navigation Toggle View Handler
-  function showView(viewName) {
-    $viewBuses.classList.add('hidden');
-    $viewAdd.classList.add('hidden');
-    $viewAccount.classList.add('hidden');
-
-    $navBuses.classList.remove('active');
-    $navAdd.classList.remove('active');
-    $navAccount.classList.remove('active');
-
-    if (viewName === 'buses') {
-      $viewBuses.classList.remove('hidden');
-      $navBuses.classList.add('active');
-    } else if (viewName === 'add') {
-      $viewAdd.classList.remove('hidden');
-      $navAdd.classList.add('active');
-    } else if (viewName === 'account') {
-      $viewAccount.classList.remove('hidden');
-      $navAccount.classList.add('active');
-    }
-  }
-
-  $navBuses.addEventListener('click', () => showView('buses'));
-  $navAdd.addEventListener('click', () => showView('add'));
-  $navAccount.addEventListener('click', () => showView('account'));
-  $accountSignOutBtn.addEventListener('click', () => {
-    auth.signOut().then(() => {
-      showToast('Signed Out!', 'You have logged out successfully.', '🚪');
-    });
-  });
-
-  // Report Live / Settings Modal Refs
-  const $reportLiveModal    = document.getElementById('reportLiveModal');
-  const $reportLiveModalSub = document.getElementById('reportLiveModalSub');
-  const $reportVerifyBtn    = document.getElementById('reportVerifyBtn');
-  const $repLiveStatus      = document.getElementById('repLiveStatus');
-  const $repLiveDelay       = document.getElementById('repLiveDelay');
-  const $repLiveLocation    = document.getElementById('repLiveLocation');
-  const $repLiveCrowd       = document.getElementById('repLiveCrowd');
-  const $reportLiveCancelBtn= document.getElementById('reportLiveCancelBtn');
-  const $reportLiveSaveBtn  = document.getElementById('reportLiveSaveBtn');
-  let selectedReportBusId   = null;
-
-  // ⏰ LOCAL SYSTEM TIME ENGINE
-  function systemNow() {
-    return new Date();
-  }
-
-  function systemHHMM() {
-    const d = systemNow();
-    return { h: d.getHours(), m: d.getMinutes(), s: d.getSeconds() };
-  }
-
-  function nowMinutes() {
-    const { h, m } = systemHHMM();
-    return h * 60 + m;
-  }
-
-  function nowSeconds() {
-    const { h, m, s } = systemHHMM();
-    return h * 3600 + m * 60 + s;
-  }
-
-  function msUntilSystem(hhmm) {
-    const [bh, bm] = hhmm.split(':').map(Number);
-    const busSec   = bh * 3600 + bm * 60;
-    const nowSec   = nowSeconds();
-    return (busSec - nowSec) * 1000;
-  }
-
-  function timeToMins(hhmm) {
-    const [h,m] = hhmm.split(':').map(Number);
-    return h * 60 + m;
-  }
-
-  function minsUntil(hhmm) {
-    return Math.ceil(msUntilSystem(hhmm) / 60000);
-  }
-
-  function fmt12(hhmm) {
-    const [h,m] = hhmm.split(':').map(Number);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12  = h % 12 || 12;
-    return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
-  }
-
-  function nowSystemStr() {
-    const { h, m } = systemHHMM();
-    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-  }
-
-  // ════════════════════════════════════════
-  // HERO COUNTDOWN
-  // ════════════════════════════════════════
-  function updateHero() {
-    const now = nowMinutes();
-    const upcoming = allBuses
-      .filter(b => {
-        const isVerified = b.verifiedByAdmin !== false;
-        const isOwner = currentUser && (b.addedByUid === currentUser.uid || b.addedBy === currentUser.email);
-        if (!isVerified && !isOwner && !isAdmin) return false;
-
-        const live = liveDataMap[b.id] || {};
-        const delay = live.delay || 0;
-        const minsLeft = minsUntil(b.time) + delay;
-        return minsLeft > 0 && minsLeft <= 480;
-      })
-      .map(b => {
-        const live = liveDataMap[b.id] || {};
-        const delay = live.delay || 0;
-        return { ...b, minsLeft: minsUntil(b.time) + delay };
-      })
-      .sort((a,b) => a.minsLeft - b.minsLeft);
-
-    const next = upcoming[0];
-    if (!next) {
-      $heroBusInfo.textContent = 'No upcoming buses 😴';
-      $heroBusRoute.textContent = 'Add timings or wait for schedules';
-      $countdownMins.textContent = '--';
-      $countdownRing.style.strokeDashoffset = '226';
-      return;
-    }
-
-    $heroBusInfo.textContent  = `Bus ${next.busNo} — ${fmt12(next.time)}`;
-    $heroBusRoute.textContent = `${next.from} → ${next.to}`;
-
-    const mins  = next.minsLeft;
-    const total = Math.min(60, Math.max(mins, 1));
-    const ratio = Math.min(1, mins / total);
-    const offset= 226 - (226 * ratio);
-
-    $countdownMins.textContent = mins;
-    $countdownRing.style.strokeDashoffset = offset;
-    $countdownRing.className = 'countdown-ring-fg' + (mins <= 5 ? ' urgent' : mins <= 15 ? ' soon' : '');
-  }
-
-  // ════════════════════════════════════════
-  // POPULATE DROPDOWNS
-  // ════════════════════════════════════════
-  function populateDropdowns() {
-    const visible = allBuses.filter(b => b.verifiedByAdmin !== false || isAdmin);
-    const froms = [...new Set(visible.map(b => b.from))].sort();
-    const tos   = [...new Set(visible.map(b => b.to))].sort();
-    $filterFrom.innerHTML = '<option value="all">All Origins</option>' +
-      froms.map(f => `<option value="${f}">${f}</option>`).join('');
-    $filterTo.innerHTML = '<option value="all">All Destinations</option>' +
-      tos.map(t => `<option value="${t}">${t}</option>`).join('');
-  }
-
-  // ════════════════════════════════════════
-  // RENDER CARDS
-  // ════════════════════════════════════════
-  function getBusStatus(b) {
-    const live = liveDataMap[b.id] || {};
-    const delay = live.delay || 0;
-    const mins = minsUntil(b.time) + delay;
-    if (mins < -5)   return 'passed';
-    if (mins <= 10)  return 'urgent';
-    if (mins <= 30)  return 'soon';
-    return 'upcoming';
-  }
-
-  function renderCard(b) {
-    const live  = liveDataMap[b.id] || {};
-    const status= live.status || 'on-time';
-    const delay = live.delay  || 0;
-    const crowd = live.crowd  || 'low';
-    const verifiedCount = (b.verified && b.verified.length) ? b.verified.length : 0;
-    const isFaved       = favoritesSet.has(b.id);
-    const comments      = commentsMap[b.id] || [];
-    const busStatus     = getBusStatus(b);
-    const minsLeft      = minsUntil(b.time) + delay;
-    const hasReminder   = !!reminders[b.id];
-    const isVerifiedByAdmin = b.verifiedByAdmin !== false;
-
-    let timeRemLabel = '';
-    let timeRemClass = '';
-    if (busStatus === 'passed') { timeRemLabel = 'Departed'; timeRemClass = 'gone'; }
-    else if (busStatus === 'urgent') { timeRemLabel = `🚨 ${minsLeft} min left!`; timeRemClass = 'urgent'; }
-    else if (busStatus === 'soon') { timeRemLabel = `⚠️ ${minsLeft} min left`; timeRemClass = 'soon'; }
-    else { timeRemLabel = `${minsLeft} min away`; timeRemClass = ''; }
-
-    let cardClass = `bus-card type-${b.type}`;
-    let cardBadge = '';
-    if (busStatus === 'urgent') { cardClass += ' departing-soon'; cardBadge = `<span class="status-badge soon">Departing Soon</span>`; }
-    else if (busStatus === 'soon') { cardBadge = `<span class="status-badge soon">Coming Up</span>`; }
-    else if (busStatus === 'passed') { cardBadge = `<span class="status-badge passed">Departed</span>`; }
-
-    let livePillHtml = `<span class="live-pill ${status}"><span class="live-dot"></span>${status === 'delayed' ? `Delayed ${delay}min` : status === 'early' ? 'Early' : 'On Time'}</span>`;
-    let crowdHtml    = `<span class="crowd-pill ${crowd}">👥 ${crowd.charAt(0).toUpperCase()+crowd.slice(1)}</span>`;
-    let pendingBadgeHtml = !isVerifiedByAdmin ? `<span class="pending-badge">Pending Approval</span>` : '';
-
-    return `
-    <div class="${cardClass}" data-id="${b.id}">
-      <div class="card-top">
-        <div class="card-left">
-          <div class="card-bus-no">
-            🚌 ${b.busNo}
-            <span class="type-badge ${b.type}">${b.type.toUpperCase()}</span>
-          </div>
-          <div class="card-route">
-            <strong>${b.from}</strong> → <strong>${b.to}</strong>
-            ${b.notes ? `<span class="route-note">${b.notes}</span>` : ''}
-          </div>
-        </div>
-        <div class="card-right">
-          <div class="card-time">${fmt12(b.time)}</div>
-          <div class="time-remaining ${timeRemClass}">${timeRemLabel}</div>
-        </div>
-      </div>
-      <div class="card-meta">
-        ${livePillHtml}
-        ${live.location ? `<span style="font-size:0.7rem;color:var(--text2)">📍 ${live.location}</span>` : ''}
-        ${crowdHtml}
-        ${verifiedCount > 0 ? `<span class="verified-pill">✅ ${verifiedCount} verified</span>` : ''}
-        ${pendingBadgeHtml}
-      </div>
-      <div class="card-actions">
-        <button class="action-btn-pill fav-btn ${isFaved ? 'active' : ''}" data-action="fav" data-id="${b.id}" title="Favorite">${isFaved ? '★' : '☆'}</button>
-        <button class="action-btn-pill remind-btn ${hasReminder ? 'active-reminder' : ''}" data-action="remind" data-id="${b.id}" title="Set Reminder">
-          ${hasReminder ? '🔔' : '🔕'}
-        </button>
-        <button class="action-btn-pill" data-action="report-live" data-id="${b.id}" title="Settings">⚙️</button>
-        <button class="action-btn-pill" data-action="toggle-comments" data-id="${b.id}" title="Comments">💬 ${comments.length ? `<span class="c-badge">${comments.length}</span>` : ''}</button>
-      </div>
-      <div class="comment-section" id="cs-${b.id}">
-        ${comments.map(c => `
-          <div class="comment-item">
-            <strong>${c.user}</strong>: ${c.text}
-            <span class="comment-time">${c.timestamp ? new Date(c.timestamp.toDate ? c.timestamp.toDate() : c.timestamp).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'}) : ''}</span>
-          </div>`).join('')}
-        ${currentUser ? `
-          <div class="comment-row">
-            <input type="text" placeholder="Add a comment..." data-id="${b.id}" data-action="add-comment" autocomplete="off" />
-            <button data-action="submit-comment" data-id="${b.id}">Send</button>
-          </div>` : `<div style="font-size:0.72rem;color:var(--text3);margin-top:6px;">Sign in to comment.</div>`}
-      </div>
-    </div>`;
-  }
-
-  function getFilteredBuses() {
-    const search   = $searchInput.value.toLowerCase().trim();
-    const typeF    = $filterType.value;
-    const fromF    = $filterFrom.value;
-    const toF      = $filterTo.value;
-    return allBuses.filter(b => {
-      const isVerified = b.verifiedByAdmin !== false;
-      const isOwner = currentUser && (b.addedByUid === currentUser.uid || b.addedBy === currentUser.email);
-      if (!isVerified && !isOwner && !isAdmin) return false;
-
-      const live = liveDataMap[b.id] || {};
-      const delay = live.delay || 0;
-      const minsLeft = minsUntil(b.time) + delay;
-      if (minsLeft < -5) return false;
-
-      if (typeF !== 'all' && b.type !== typeF) return false;
-      if (fromF !== 'all' && b.from !== fromF) return false;
-      if (toF   !== 'all' && b.to   !== toF)   return false;
-      if (search) {
-        const hay = `${b.busNo} ${b.from} ${b.to} ${b.notes} ${b.type} ${b.time}`.toLowerCase();
-        if (!hay.includes(search)) return false;
-      }
-      return true;
-    }).sort((a,b) => timeToMins(a.time) - timeToMins(b.time));
-  }
-
-  function renderSchedule() {
-    const filtered = getFilteredBuses();
-    $resultCount.textContent = `${filtered.length} bus${filtered.length !== 1 ? 'es' : ''}`;
-    if (filtered.length === 0) {
-      $busList.innerHTML = '';
-      $noResults.classList.remove('hidden');
-      return;
-    }
-    $noResults.classList.add('hidden');
-    $busList.innerHTML = filtered.map(b => renderCard(b)).join('');
-    attachCardListeners($busList);
-  }
-
-  function renderFavorites() {
-    const favBuses = allBuses.filter(b => favoritesSet.has(b.id));
-    if (favBuses.length === 0) {
-      $favList.innerHTML = '';
-      $favEmpty.classList.remove('hidden');
-      return;
-    }
-    $favEmpty.classList.add('hidden');
-    $favList.innerHTML = favBuses.sort((a,b) => timeToMins(a.time) - timeToMins(b.time))
-      .map(b => renderCard(b)).join('');
-    attachCardListeners($favList);
-  }
-
-  function renderAll() {
-    renderSchedule();
-    renderFavorites();
-    renderRemindersList();
-    updateHero();
-    updateReminderBadge();
-  }
-
-  function attachCardListeners(container) {
-    container.querySelectorAll('[data-action]').forEach(el => {
-      el.addEventListener('click', handleCardAction);
-    });
-  }
-
-  function handleCardAction(e) {
-    e.stopPropagation();
-    const action = e.currentTarget.dataset.action;
-    const id     = e.currentTarget.dataset.id;
-    if (!id && action !== 'submit-comment') return;
-    switch(action) {
-      case 'fav':             toggleFavorite(id); break;
-      case 'remind':          openReminderModal(id); break;
-      case 'report-live':     openReportLiveModal(id); break;
-      case 'toggle-comments': toggleComments(id); break;
-      case 'submit-comment':  submitComment(id, e.currentTarget.closest('.comment-row')); break;
-    }
-  }
-
-  // ════════════════════════════════════════
-  // FAVORITES
-  // ════════════════════════════════════════
-  function toggleFavorite(id) {
-    if (!currentUser) { openAuthModal(); return; }
-    if (favoritesSet.has(id)) favoritesSet.delete(id);
-    else                       favoritesSet.add(id);
-    syncFavorites();
-    renderAll();
-  }
-  function syncFavorites() {
-    if (!currentUser || !firestoreReady) return;
-    db.collection('users').doc(currentUser.uid).set({
-      favorites: [...favoritesSet],
-      email: currentUser.email,
-      displayName: currentUser.displayName || currentUser.email,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true }).catch(e => console.warn('Fav sync:', e));
-  }
-  function loadFavorites() {
-    if (!currentUser) { favoritesSet.clear(); renderAll(); return; }
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
-      favoritesSet = new Set(doc.exists && doc.data().favorites ? doc.data().favorites : []);
-      renderAll();
-    }).catch(() => { favoritesSet.clear(); renderAll(); });
-  }
-
-  // ════════════════════════════════════════
-  // REMINDER SYSTEM
-  // ════════════════════════════════════════
-  let pendingReminderBusId = null;
-  let selectedLeadMins     = 5;
-
-  function openReminderModal(id) {
-    pendingReminderBusId = id;
-    const bus = allBuses.find(b => b.id === id);
-    if (!bus) return;
-    const existing = reminders[id];
-    selectedLeadMins = existing ? existing.leadMins : 5;
-    document.getElementById('reminderModalSub').textContent = `Bus ${bus.busNo} — ${bus.from} → ${bus.to} at ${fmt12(bus.time)}`;
-    document.getElementById('reminderRepeat').value = existing ? existing.repeat : 'daily';
-    document.querySelectorAll('.lead-chip').forEach(c => {
-      c.classList.toggle('selected', parseInt(c.dataset.mins) === selectedLeadMins);
-    });
-    document.getElementById('reminderModal').classList.remove('hidden');
-  }
-
-  document.querySelectorAll('.lead-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      selectedLeadMins = parseInt(chip.dataset.mins);
-      document.querySelectorAll('.lead-chip').forEach(c => c.classList.remove('selected'));
-      chip.classList.add('selected');
-    });
-  });
-
-  document.getElementById('reminderCancelBtn').addEventListener('click', () => {
-    document.getElementById('reminderModal').classList.add('hidden');
-    pendingReminderBusId = null;
-  });
-
-  document.getElementById('reminderSaveBtn').addEventListener('click', () => {
-    if (!pendingReminderBusId) return;
-    const bus    = allBuses.find(b => b.id === pendingReminderBusId);
-    const repeat = document.getElementById('reminderRepeat').value;
-    reminders[pendingReminderBusId] = { leadMins: selectedLeadMins, repeat, busData: bus };
-    localStorage.setItem('cmsrReminders', JSON.stringify(reminders));
-    document.getElementById('reminderModal').classList.add('hidden');
-    pendingReminderBusId = null;
-    requestNotifPermission();
-    scheduleAllReminders();
-    renderAll();
-    showToast('Reminder Set! 🔔', `You'll be notified ${selectedLeadMins} min before Bus ${bus.busNo}.`, '🔔');
-  });
-
-  async function requestNotifPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-      await Notification.requestPermission();
-    }
-  }
-
-  function scheduleAllReminders() {
-    Object.values(reminderTimers).forEach(t => { clearTimeout(t.id); });
-    reminderTimers = {};
-
-    Object.entries(reminders).forEach(([busId, rem]) => {
-      const bus = allBuses.find(b => b.id === busId) || rem.busData;
-      if (!bus) return;
-
-      const busMins      = timeToMins(bus.time);
-      const triggerMins  = busMins - rem.leadMins;
-      const tH           = Math.floor(triggerMins / 60);
-      const tM           = triggerMins % 60;
-      const triggerHHMM  = `${String(tH).padStart(2,'0')}:${String(tM).padStart(2,'0')}`;
-
-      let msLeft = msUntilSystem(triggerHHMM);
-
-      if (msLeft <= -60000) {
-        if (rem.repeat === 'once') return;
-        msLeft += 24 * 3600 * 1000;
-      } else if (msLeft <= 0) {
-        msLeft = 500;
-      }
-
-      const timerId = setTimeout(() => {
-        fireReminder(bus, rem.leadMins);
-        if (rem.repeat === 'once') {
-          delete reminders[busId];
-          localStorage.setItem('cmsrReminders', JSON.stringify(reminders));
-          renderAll();
-        } else {
-          const nextMs = 24 * 3600 * 1000;
-          const nextId = setTimeout(() => scheduleAllReminders(), nextMs);
-          reminderTimers[busId] = { id: nextId, fireAt: triggerHHMM, busId };
-        }
-      }, msLeft);
-
-      reminderTimers[busId] = { id: timerId, fireAt: triggerHHMM, busId, msLeft, scheduledAt: Date.now() };
-    });
-  }
-
-  function fireReminder(bus, leadMins) {
-    const title    = `🚌 Bus ${bus.busNo} in ${leadMins} min!`;
-    const body     = `${bus.from} → ${bus.to} departs at ${fmt12(bus.time)}. Get ready!`;
-
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification(title, {
-          body,
-          icon: 'https://api.iconify.design/emojione/bus.svg',
-          tag:  `cmsr-bus-${bus.id}`,
-          requireInteraction: true,
-          vibrate: [200, 100, 200]
-        });
-      } catch(e) { console.warn(e); }
-    }
-    showToast(title, body, '🚌', true, 10000);
-  }
-
-  function removeReminder(busId) {
-    delete reminders[busId];
-    localStorage.setItem('cmsrReminders', JSON.stringify(reminders));
-    if (reminderTimers[busId]) { clearTimeout(reminderTimers[busId].id); delete reminderTimers[busId]; }
-    renderAll();
-    showToast('Reminder Removed', 'Reminder has been cancelled.', '🔕');
-  }
-
-  function renderRemindersList() {
-    const $list = document.getElementById('remindersList');
-    const $empty= document.getElementById('remindersEmpty');
-    const entries = Object.entries(reminders);
-    if (entries.length === 0) { $list.innerHTML = ''; $empty.classList.remove('hidden'); return; }
-    $empty.classList.add('hidden');
-    $list.innerHTML = entries.map(([busId, rem]) => {
-      const bus = allBuses.find(b => b.id === busId) || rem.busData;
-      if (!bus) return '';
-      const minsLeft = minsUntil(bus.time);
-      return `
-      <div class="reminder-card">
-        <div class="r-icon">🔔</div>
-        <div class="r-info">
-          <div class="r-bus">Bus ${bus.busNo}</div>
-          <div class="r-route">${bus.from} → ${bus.to}</div>
-          <div class="r-time">⏰ ${fmt12(bus.time)} · ${rem.leadMins}min early · ${rem.repeat === 'daily' ? '🔄 Daily' : '1× Only'}</div>
-        </div>
-        <div class="r-actions">
-          <button class="btn sm" onclick="openReminderModal('${busId}')">Edit</button>
-          <button class="btn sm danger" onclick="removeReminder('${busId}')">Remove</button>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  function updateReminderBadge() {
-    const count = Object.keys(reminders).length;
-    if (count > 0) { $reminderBadge.textContent = count; $reminderBadge.classList.remove('hidden'); }
-    else { $reminderBadge.classList.add('hidden'); }
-  }
-
-  // ════════════════════════════════════════
-  // SETTINGS & STATUS REPORT MODAL
-  // ════════════════════════════════════════
-  function openReportLiveModal(id) {
-    if (!currentUser) { openAuthModal(); return; }
-    selectedReportBusId = id;
-    const bus = allBuses.find(b => b.id === id);
-    if (!bus) return;
-
-    const live = liveDataMap[id] || {};
-    $reportLiveModalSub.textContent = `Bus ${bus.busNo} — ${bus.from} → ${bus.to} at ${fmt12(bus.time)}`;
-    $repLiveStatus.value   = live.status || 'on-time';
-    $repLiveDelay.value    = live.delay || 0;
-    $repLiveLocation.value = live.location || '';
-    $repLiveCrowd.value    = live.crowd || 'low';
-
-    $reportLiveModal.classList.remove('hidden');
-  }
-
-  $reportLiveCancelBtn.addEventListener('click', () => {
-    $reportLiveModal.classList.add('hidden');
-    selectedReportBusId = null;
-  });
-
-  $reportLiveSaveBtn.addEventListener('click', () => {
-    if (!selectedReportBusId) return;
-    const liveStatus   = $repLiveStatus.value;
-    const delay        = parseInt($repLiveDelay.value) || 0;
-    const liveLocation = $repLiveLocation.value.trim();
-    const crowd        = $repLiveCrowd.value;
-
-    db.collection('bus_timings').doc(selectedReportBusId).update({
-      liveStatus, delay, liveLocation, crowd
-    }).then(() => {
-      showToast('Status Updated!', 'Thank you for reporting live time details.', '📍');
-      $reportLiveModal.classList.add('hidden');
-      selectedReportBusId = null;
-    }).catch(e => alert(e.message));
-  });
-
-  $reportVerifyBtn.addEventListener('click', () => {
-    if (!selectedReportBusId || !currentUser) return;
-    const ref = db.collection('bus_timings').doc(selectedReportBusId);
-    db.runTransaction(async tx => {
-      const doc = await tx.get(ref);
-      if (!doc.exists) return;
-      const v = doc.data().verified || [];
-      if (!v.includes(currentUser.uid)) v.push(currentUser.uid);
-      tx.update(ref, { verified: v });
-    }).then(() => {
-      showToast('Verified!', 'Departure confirmed by you.', '✅');
-      $reportLiveModal.classList.add('hidden');
-      selectedReportBusId = null;
-    }).catch(e => console.warn(e));
-  });
-
-  // ════════════════════════════════════════
-  // COMMENTS
-  // ════════════════════════════════════════
-  function toggleComments(id) {
-    const el = document.getElementById(`cs-${id}`);
-    if (el) el.classList.toggle('open');
-  }
-
-  function submitComment(id, row) {
-    if (!currentUser || !row) return;
-    const input = row.querySelector('input');
-    const text = input ? input.value.trim() : '';
-    if (!text) return;
-    db.collection('bus_timings').doc(id).collection('comments').add({
-      user: currentUser.displayName || currentUser.email,
-      text,
-      uid: currentUser.uid,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => { if (input) input.value = ''; })
-      .catch(e => console.warn(e));
-  }
-
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && e.target.dataset.action === 'add-comment') {
-      const id = e.target.dataset.id;
-      const row = e.target.closest('.comment-row');
-      submitComment(id, row);
-    }
-  });
-
-  function loadComments(id) {
-    db.collection('bus_timings').doc(id).collection('comments')
-      .orderBy('timestamp','asc').onSnapshot(snap => {
-        commentsMap[id] = [];
-        snap.forEach(d => commentsMap[id].push(d.data()));
-        renderAll();
-      });
-  }
-
-  // ════════════════════════════════════════
-  // TOAST
-  // ════════════════════════════════════════
-  function showToast(title, body, icon = '🚌', isReminder = false, duration = 4000) {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-    const toast = document.createElement('div');
-    toast.className = 'toast' + (isReminder ? ' reminder-toast' : '');
-    toast.innerHTML = `
-      <div class="t-icon">${icon}</div>
-      <div class="t-content">
-        <div class="t-title">${title}</div>
-        <div class="t-body">${body}</div>
-      </div>
-      <button class="t-close">×</button>`;
-    container.appendChild(toast);
-    toast.querySelector('.t-close').addEventListener('click', () => toast.remove());
-    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.4s'; setTimeout(() => toast.remove(), 400); }, duration);
-  }
-
-  // ════════════════════════════════════════
-  // FILTERS
-  // ════════════════════════════════════════
-  $searchInput.addEventListener('input',  renderSchedule);
-  $filterType.addEventListener('change',  renderSchedule);
-  $filterFrom.addEventListener('change',  renderSchedule);
-  $filterTo.addEventListener('change',    renderSchedule);
-  document.getElementById('clearFiltersBtn').addEventListener('click', () => {
-    $searchInput.value = '';
-    $filterType.value = $filterFrom.value = $filterTo.value = 'all';
-    renderSchedule();
-  });
-
-  // ════════════════════════════════════════
-  // FIRESTORE LISTENER (Real-Time)
-  // ════════════════════════════════════════
-  function setupFirestoreListener() {
-    db.collection('bus_timings').onSnapshot(snap => {
-      const firestoreData = [];
-      snap.forEach(doc => {
-        const d = doc.data();
-        firestoreData.push({
-          id: doc.id,
-          busNo: d.busNo,
-          type: d.type,
-          from: d.from,
-          to: d.to,
-          time: d.time,
-          notes: d.notes || '',
-          addedBy: d.addedBy || '',
-          addedByUid: d.addedByUid || '',
-          verifiedByAdmin: d.verifiedByAdmin !== false,
-          verified: d.verified || [],
-          liveStatus: d.liveStatus || 'on-time',
-          liveLocation: d.liveLocation || '',
-          delay: d.delay || 0,
-          crowd: d.crowd || 'low',
-        });
-      });
-
-      allBuses = firestoreData;
-      liveDataMap = {};
-      allBuses.forEach(b => {
-        liveDataMap[b.id] = {
-          status: b.liveStatus || 'on-time',
-          location: b.liveLocation || '',
-          delay: b.delay || 0,
-          crowd: b.crowd || 'low'
-        };
-      });
-
-      firestoreReady = true;
-      populateDropdowns();
-      renderAll();
-      allBuses.forEach(b => loadComments(b.id));
-    }, err => {
-      console.warn('Firestore listener error:', err.message);
-      firestoreReady = true;
-      populateDropdowns();
-      renderAll();
-    });
-  }
-
-  function setupAlertListener() {
-    db.collection('app_settings').doc('alert').onSnapshot(doc => {
-      if (doc.exists && doc.data().message && doc.data().active) {
-        $alertMsg.textContent = doc.data().message;
-        $alertBar.classList.add('show');
-      } else { $alertBar.classList.remove('show'); }
-    }, e => console.warn('Alert listener:', e));
-  }
-  document.getElementById('closeAlertBtn').addEventListener('click', () => $alertBar.classList.remove('show'));
-
-  // ════════════════════════════════════════
-  // 🔐 NEW Google & Email authentication System
-  // ════════════════════════════════════════
-  let isSignUpMode = false;
-
-  function openAuthModal() {
-    $authEmail.value = '';
-    $authPassword.value = '';
-    $resetEmail.value = '';
-    setAuthMode(false);
-    showView('account');
-  }
-
-  function setAuthMode(signUp) {
-    isSignUpMode = signUp;
-    if (isSignUpMode) {
-      $authSubmitBtn.textContent = 'Create Account';
-      $authToggleText.textContent = 'Already have an account?';
-      $authToggleBtn.textContent = 'Sign In';
-      document.getElementById('authPasswordGroup').classList.remove('hidden');
-    } else {
-      $authSubmitBtn.textContent = 'Sign In with Email';
-      $authToggleText.textContent = "Don't have an account?";
-      $authToggleBtn.textContent = 'Sign Up';
-      document.getElementById('authPasswordGroup').classList.remove('hidden');
-    }
-    $emailAuthView.classList.remove('hidden');
-    $forgotPasswordView.classList.add('hidden');
-  }
-  $authModal.addEventListener('click', e => { if (e.target === $authModal) $authModal.classList.add('hidden'); });
-
-  $authToggleBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    setAuthMode(!isSignUpMode);
-  });
-
-  $authForgotBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    $emailAuthView.classList.add('hidden');
-    $forgotPasswordView.classList.remove('hidden');
-  });
-
-  $authBackToLoginBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    setAuthMode(false);
-  });
-
-  // Google Login
-  $authGoogleBtn.addEventListener('click', () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider)
-      .then(() => $authModal.classList.add('hidden'))
-      .catch(e => showToast('Login Failed', e.message, '❌'));
-  });
-
-  // Email Submit (Login or register)
-  $authSubmitBtn.addEventListener('click', () => {
-    const email    = $authEmail.value.trim();
-    const password = $authPassword.value;
-    if (!email || !password) { showToast('Required Fields', 'Please fill in both email and password.', '⚠️'); return; }
-
-    if (isSignUpMode) {
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(() => {
-          showToast('Account Created! 🎉', 'Welcome to CMSR Bus.', '✅');
-          $authModal.classList.add('hidden');
-        })
-        .catch(e => showToast('Sign Up Failed', e.message, '❌'));
-    } else {
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => {
-          showToast('Welcome Back!', 'Signed in successfully.', '✅');
-          $authModal.classList.add('hidden');
-        })
-        .catch(e => showToast('Sign In Failed', e.message, '❌'));
-    }
-  });
-
-  // Password Reset Email
-  $authResetSubmitBtn.addEventListener('click', () => {
-    const email = $resetEmail.value.trim();
-    if (!email) { showToast('Required Field', 'Please enter your email address.', '⚠️'); return; }
-    auth.sendPasswordResetEmail(email)
-      .then(() => {
-        showToast('Reset Link Sent! ✉️', 'Please check your inbox for password reset instructions.', '📧');
-        setAuthMode(false);
-      })
-      .catch(e => showToast('Reset Failed', e.message, '❌'));
-  });
-
-  auth.onAuthStateChanged(user => {
-    currentUser = user;
-    isAdmin     = !!(user && user.email === ADMIN_EMAIL);
-
-    if (user) {
-      // Toggle Cards in Account Tab
-      $authCard.classList.add('hidden');
-      $profileCard.classList.remove('hidden');
-
-      // Populate Profile Card
-      $profileAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=3d8ef8&color=fff`;
-      $profileName.textContent = user.displayName || user.email.split('@')[0];
-      $profileEmail.textContent = user.email;
-      $profileRoleBadge.textContent = isAdmin ? 'Administrator' : 'Standard Contributor';
-      $profileRoleBadge.style.background = isAdmin ? 'var(--purpleDim)' : 'var(--accentGlow)';
-      $profileRoleBadge.style.color = isAdmin ? 'var(--purple)' : 'var(--accent)';
-
-      // All logged-in users can suggest timing entries via the bottom Add tab
-      $navAdd.classList.remove('hidden');
-
-      // Configure Add Timing tab view elements based on admin role
-      const $adminTabsGroup = document.getElementById('adminTabsGroup');
-      const $panelTitle = document.getElementById('panelTitle');
-      const $admSaveAddBtn = document.getElementById('admSaveAdd');
-      
-      if (isAdmin) {
-        if ($adminTabsGroup) $adminTabsGroup.classList.remove('hidden');
-        if ($panelTitle) $panelTitle.textContent = '⚙️ Admin Timing Dashboard';
-        if ($admSaveAddBtn) $admSaveAddBtn.textContent = 'Save Bus Timing';
-        
-        // Reset subtab views to active Suggestion form
-        document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-        const activeTabBtn = document.querySelector('.admin-tab-btn[data-atab="add"]');
-        if (activeTabBtn) activeTabBtn.classList.add('active');
-        const activeSec = document.getElementById('atab-add');
-        if (activeSec) activeSec.classList.add('active');
-      } else {
-        if ($adminTabsGroup) $adminTabsGroup.classList.add('hidden');
-        if ($panelTitle) $panelTitle.textContent = '➕ Add Bus Timing';
-        if ($admSaveAddBtn) $admSaveAddBtn.textContent = 'Save Bus Timing';
-        
-        // Lock non-admins to the atab-add form section
-        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-        const activeSec = document.getElementById('atab-add');
-        if (activeSec) activeSec.classList.add('active');
-      }
-
-      loadFavorites();
-    } else {
-      // Reset profile view
-      $authCard.classList.remove('hidden');
-      $profileCard.classList.add('hidden');
-      $navAdd.classList.add('hidden');
-
-      // If they were on the Admin Timing tab, redirect to Buses
-      const currentActiveTab = document.querySelector('.bottom-nav .nav-item.active');
-      if (currentActiveTab && currentActiveTab.dataset.nav === 'add') {
-        showView('buses');
-      }
-
-      favoritesSet.clear();
-      renderAll();
-    }
-  });
-
-  document.querySelectorAll('.admin-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(`atab-${btn.dataset.atab}`).classList.add('active');
-      populateAdminSelects();
-    });
-  });
-
-  function populateAdminSelects() {
-    const sorted = [...allBuses].sort((a,b) => timeToMins(a.time) - timeToMins(b.time));
-    const opts   = sorted.map(b => `<option value="${b.id}">${b.busNo} | ${b.from}→${b.to} | ${fmt12(b.time)}</option>`).join('');
-    document.getElementById('admEditSelect').innerHTML = '<option value="">-- Choose a bus --</option>' + opts;
-    document.getElementById('admLiveSelect').innerHTML = '<option value="">-- Choose a bus --</option>' + opts;
-  }
-
-
-  document.getElementById('admEditSelect').addEventListener('change', function() {
-    const bus = allBuses.find(b => b.id === this.value);
-    if (!bus) return;
-    document.getElementById('admEditBusNo').value = bus.busNo;
-    document.getElementById('admEditType').value  = bus.type;
-    document.getElementById('admEditTime').value  = bus.time;
-    document.getElementById('admEditNotes').value = bus.notes || '';
-    
-    const routeKey = `${bus.from}-${bus.to}`;
-    const routeSelect = document.getElementById('admEditRoute');
-    if (routeSelect && ['CMSR-KTC', 'CMSR-Kamat', 'KTC-Varca'].includes(routeKey)) {
-      routeSelect.value = routeKey;
-    }
-  });
-
-  document.getElementById('admLiveSelect').addEventListener('change', function() {
-    const live = liveDataMap[this.value];
-    if (!live) return;
-    document.getElementById('admLiveStatus').value   = live.status || 'on-time';
-    document.getElementById('admLiveLocation').value = live.location || '';
-    document.getElementById('admLiveDelay').value    = live.delay || 0;
-    document.getElementById('admLiveCrowd').value    = live.crowd || 'low';
-  });
-
-  document.getElementById('admSaveAdd').addEventListener('click', () => {
-    if (!currentUser) { openAuthModal(); return; }
-    const busNo    = document.getElementById('admAddBusNo').value.trim();
-    const type     = document.getElementById('admAddType').value;
-    const routeVal = document.getElementById('admAddRoute').value;
-    const time     = document.getElementById('admAddTime').value;
-    const notes    = document.getElementById('admAddNotes').value.trim();
-
-    if (!busNo || !routeVal || !time) { alert('Fill all required fields.'); return; }
-
-    let from = '';
-    let to   = '';
-    if (routeVal === 'CMSR-KTC') { from = 'CMSR'; to = 'KTC'; }
-    else if (routeVal === 'CMSR-Kamat') { from = 'CMSR'; to = 'Kamat'; }
-    else if (routeVal === 'KTC-Varca') { from = 'KTC'; to = 'Varca'; }
-
-    const docId = 'fb_' + Date.now();
-    db.collection('bus_timings').doc(docId).set({
-      busNo, type, from, to, time, notes,
-      addedBy: currentUser.email,
-      addedByUid: currentUser.uid,
-      verifiedByAdmin: true,
-      verified: [],
-      liveStatus: 'on-time', liveLocation: '',
-      delay: 0, crowd: 'low', crowdReportCount: 0,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      showToast('Bus Added!', `Bus timing ${busNo} is live.`, '✅');
-      if (!isAdmin) {
-        showView('buses');
-      }
-      document.getElementById('adminModal').classList.add('hidden');
-      ['admAddBusNo','admAddNotes'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('admAddTime').value = '';
-    }).catch(e => alert(e.message));
-  });
-
-  document.getElementById('admSaveEdit').addEventListener('click', () => {
-    if (!isAdmin) return;
-    const id = document.getElementById('admEditSelect').value;
-    if (!id) { alert('Select a bus first.'); return; }
-    
-    const routeVal = document.getElementById('admEditRoute').value;
-    let from = '';
-    let to   = '';
-    if (routeVal === 'CMSR-KTC') { from = 'CMSR'; to = 'KTC'; }
-    else if (routeVal === 'CMSR-Kamat') { from = 'CMSR'; to = 'Kamat'; }
-    else if (routeVal === 'KTC-Varca') { from = 'KTC'; to = 'Varca'; }
-
-    db.collection('bus_timings').doc(id).update({
-      busNo: document.getElementById('admEditBusNo').value.trim(),
-      type:  document.getElementById('admEditType').value,
-      from, to,
-      time:  document.getElementById('admEditTime').value,
-      notes: document.getElementById('admEditNotes').value.trim(),
-    }).then(() => {
-      showToast('Updated!', 'Bus has been updated.', '✅');
-      document.getElementById('adminModal').classList.add('hidden');
-    }).catch(e => alert(e.message));
-  });
-
-  document.getElementById('admDeleteBus').addEventListener('click', () => {
-    if (!isAdmin) return;
-    const id = document.getElementById('admEditSelect').value;
-    if (!id || !confirm('Delete this bus permanently?')) return;
-    db.collection('bus_timings').doc(id).delete()
-      .then(() => {
-        showToast('Deleted!', 'Bus has been removed.', '🗑');
-        document.getElementById('adminModal').classList.add('hidden');
-      }).catch(e => alert(e.message));
-  });
-
-  document.getElementById('admSetAlert').addEventListener('click', () => {
-    if (!isAdmin) return;
-    const msg = document.getElementById('admAlertMsg').value.trim();
-    if (!msg) { alert('Enter an alert message.'); return; }
-    db.collection('app_settings').doc('alert').set({
-      message: msg, active: true,
-      setBy: currentUser.email,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => { showToast('Alert Set!', 'Alert is now live.', '🚨'); document.getElementById('admAlertMsg').value = ''; })
-      .catch(e => alert(e.message));
-  });
-
-  document.getElementById('admClearAlert').addEventListener('click', () => {
-    if (!isAdmin) return;
-    db.collection('app_settings').doc('alert').update({ active: false })
-      .then(() => showToast('Alert Cleared!', 'Alert has been removed.', '✅')).catch(e => alert(e.message));
-  });
-
-  document.getElementById('admSaveLive').addEventListener('click', () => {
-    if (!isAdmin) return;
-    const id = document.getElementById('admLiveSelect').value;
-    if (!id) { alert('Select a bus first.'); return; }
-    db.collection('bus_timings').doc(id).update({
-      liveStatus:   document.getElementById('admLiveStatus').value,
-      liveLocation: document.getElementById('admLiveLocation').value.trim(),
-      delay:        parseInt(document.getElementById('admLiveDelay').value) || 0,
-      crowd:        document.getElementById('admLiveCrowd').value,
-    }).then(() => {
-      showToast('Live Updated!', 'Live data saved.', '📍');
-      document.getElementById('adminModal').classList.add('hidden');
-    }).catch(e => alert(e.message));
-  });
-
-
-  // ════════════════════════════════════════
-  // NETWORK DETECTION
-  // ════════════════════════════════════════
-  function updateOnlineStatus() {
-    document.body.classList.toggle('offline', !navigator.onLine);
-  }
-  window.addEventListener('online', updateOnlineStatus);
-  window.addEventListener('offline', updateOnlineStatus);
-  updateOnlineStatus();
-
-  // ════════════════════════════════════════
-  // FIREBASE: SEED → FIRESTORE
-  // ════════════════════════════════════════
-  async function syncSeedToFirestore() {
-    try {
-      const doc = await db.collection('bus_timings').doc('s1').get();
-      if (!doc.exists) {
-        console.log('🔥 Uploading SEED data to Firestore...');
-        const batch = db.batch();
-        SEED.forEach(bus => {
-          const ref = db.collection('bus_timings').doc(bus.id);
-          batch.set(ref, {
-            busNo: bus.busNo, type: bus.type, from: bus.from, to: bus.to,
-            time: bus.time, notes: bus.notes, addedBy: 'admin',
-            verifiedByAdmin: true,
-            verified: bus.verified || [],
-            liveStatus: 'on-time', liveLocation: '', delay: 0,
-            crowd: 'low', crowdReportCount: 0,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Javascript Logic -->
+  <script>
+    // === Firebase Config ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyDSeRWOqJWvIJjFhSG-5NrRvYtuTNevqOA",
+      authDomain: "zevbuild.firebaseapp.com",
+      databaseURL: "https://zevbuild-default-rtdb.firebaseio.com",
+      projectId: "zevbuild",
+      storageBucket: "zevbuild.firebasestorage.app",
+      messagingSenderId: "1088713528432",
+      appId: "1:1088713528432:web:862382454428a2f79090b5"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    db.enablePersistence({ synchronizeTabs: true }).catch(err => console.warn("Persistence err", err));
+
+    const ADMIN_EMAIL = 'zevbuildstudio@gmail.com';
+
+    // === App State & Core Logic ===
+    const app = {
+      buses: [],
+      favorites: new Set(),
+      currentUser: null,
+      isAdmin: false,
+      activeView: 'buses',
+      activeTab: 'all',
+      searchQuery: '',
+      nextBestBusId: null,
+
+      init() {
+        this.bindEvents();
+        this.initTheme();
+        this.setupAuthListener();
+        this.setupFirestore();
+
+        setInterval(() => {
+          this.updateSystemTime();
+          this.calculateLiveRecommendation();
+        }, 1000);
+      },
+
+      bindEvents() {
+        // Bottom Nav
+        document.querySelectorAll('.bottom-nav .nav-item').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const view = e.currentTarget.dataset.view;
+            this.switchView(view);
           });
         });
-        await batch.commit();
-        console.log('✅ SEED uploaded.');
+
+        // Tabs
+        document.querySelectorAll('.wa-tab').forEach(tab => {
+          tab.addEventListener('click', (e) => {
+            document.querySelectorAll('.wa-tab').forEach(t => t.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            this.activeTab = e.currentTarget.dataset.tab;
+            this.renderBuses();
+          });
+        });
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+          this.searchQuery = e.target.value.toLowerCase().trim();
+          this.renderBuses();
+        });
+
+        // Theme Toggle
+        document.getElementById('themeToggleBtn').addEventListener('click', () => this.toggleTheme());
+
+        // Auth
+        document.getElementById('authLoginBtn').addEventListener('click', () => this.handleAuth('login'));
+        document.getElementById('authSignupBtn').addEventListener('click', () => this.handleAuth('signup'));
+        document.getElementById('authLogoutBtn').addEventListener('click', () => auth.signOut());
+
+        // Add Bus
+        document.getElementById('addSaveBtn').addEventListener('click', () => this.handleAddBus());
+
+        // Modal Actions
+        document.getElementById('modalBtnFav').addEventListener('click', () => this.toggleFavoriteAction());
+        document.getElementById('modalBtnDelete').addEventListener('click', () => this.deleteBusAction());
+      },
+
+      initTheme() {
+        if(localStorage.getItem('wa_theme') === 'light') {
+          document.body.classList.add('light-mode');
+        }
+      },
+      toggleTheme() {
+        document.body.classList.toggle('light-mode');
+        localStorage.setItem('wa_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+      },
+
+      switchView(viewName) {
+        this.activeView = viewName;
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(`view-${viewName}`).classList.add('active');
+
+        document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelector(`.bottom-nav .nav-item[data-view="${viewName}"]`).classList.add('active');
+      },
+
+      // --- Time Utils ---
+      nowMins() {
+        const d = new Date();
+        return d.getHours() * 60 + d.getMinutes();
+      },
+      timeToMins(hhmm) {
+        if(!hhmm) return 0;
+        const [h,m] = hhmm.split(':').map(Number);
+        return h * 60 + m;
+      },
+      fmt12(hhmm) {
+        if(!hhmm) return '';
+        const [h,m] = hhmm.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+      },
+      updateSystemTime() {
+        const d = new Date();
+        const mm = String(d.getMinutes()).padStart(2,'0');
+        const h = d.getHours();
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        document.getElementById('sysTime').textContent = `${h12}:${mm} ${ampm}`;
+      },
+
+      // --- Firebase & Data ---
+      setupAuthListener() {
+        auth.onAuthStateChanged(user => {
+          this.currentUser = user;
+          this.isAdmin = user && user.email === ADMIN_EMAIL;
+
+          const authC = document.getElementById('authContainer');
+          const profC = document.getElementById('profileContainer');
+
+          if(user) {
+            authC.style.display = 'none';
+            profC.style.display = 'block';
+            document.getElementById('profileName').textContent = user.displayName || user.email.split('@')[0];
+            document.getElementById('profileEmail').textContent = user.email;
+            document.getElementById('profileRole').textContent = this.isAdmin ? 'Admin' : 'User';
+            document.getElementById('profileImg').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=00a884&color=fff`;
+            this.loadFavorites();
+          } else {
+            authC.style.display = 'block';
+            profC.style.display = 'none';
+            this.favorites.clear();
+            this.renderBuses();
+          }
+        });
+      },
+
+      handleAuth(mode) {
+        const email = document.getElementById('authEmail').value.trim();
+        const pass = document.getElementById('authPassword').value;
+        if(!email || !pass) { this.showToast('Enter email and password'); return; }
+
+        if(mode === 'login') {
+          auth.signInWithEmailAndPassword(email, pass)
+            .then(() => { this.showToast('Logged In'); this.switchView('buses'); })
+            .catch(e => this.showToast(e.message));
+        } else {
+          auth.createUserWithEmailAndPassword(email, pass)
+            .then(() => { this.showToast('Account Created'); this.switchView('buses'); })
+            .catch(e => this.showToast(e.message));
+        }
+      },
+
+      setupFirestore() {
+        db.collection('bus_timings').onSnapshot(snap => {
+          this.buses = [];
+          snap.forEach(doc => {
+            this.buses.push({ id: doc.id, ...doc.data() });
+          });
+          this.renderBuses();
+          this.calculateLiveRecommendation();
+        });
+      },
+
+      loadFavorites() {
+        if(!this.currentUser) return;
+        db.collection('users').doc(this.currentUser.uid).get().then(doc => {
+          if(doc.exists && doc.data().favorites) {
+            this.favorites = new Set(doc.data().favorites);
+            this.renderBuses();
+          }
+        });
+      },
+      saveFavorites() {
+        if(!this.currentUser) return;
+        db.collection('users').doc(this.currentUser.uid).set({
+          favorites: [...this.favorites]
+        }, {merge: true});
+      },
+
+      // --- Rendering UI ---
+      renderBuses() {
+        const container = document.getElementById('busListContainer');
+        const emptyState = document.getElementById('emptyListState');
+        const now = this.nowMins();
+
+        // Filter and Sort
+        let filtered = this.buses.filter(b => {
+          // Time logic: hide buses older than 15 mins ago
+          const bTime = this.timeToMins(b.time);
+          if (bTime < now - 15) return false;
+
+          if(this.activeTab === 'fav' && !this.favorites.has(b.id)) return false;
+
+          if(this.searchQuery) {
+            const q = `${b.busNo} ${b.from} ${b.to} ${b.notes}`.toLowerCase();
+            if(!q.includes(this.searchQuery)) return false;
+          }
+          return true;
+        });
+
+        filtered.sort((a,b) => this.timeToMins(a.time) - this.timeToMins(b.time));
+
+        if(filtered.length === 0) {
+          container.innerHTML = '';
+          emptyState.style.display = 'flex';
+          return;
+        }
+        
+        emptyState.style.display = 'none';
+        
+        container.innerHTML = filtered.map(b => {
+          const bMins = this.timeToMins(b.time);
+          const diff = bMins - now;
+          let badgeHtml = '';
+          if(diff <= 15 && diff >= 0) badgeHtml = `<span class="wa-badge danger">${diff}m left</span>`;
+          else if(diff <= 45 && diff >= 0) badgeHtml = `<span class="wa-badge warning">${diff}m left</span>`;
+
+          const isFav = this.favorites.has(b.id);
+          const favIcon = isFav ? '<span style="color:var(--wa-warning); margin-right:4px;">⭐</span>' : '';
+
+          return `
+            <div class="bus-item" onclick="app.showBusDetails('${b.id}')">
+              <div class="bus-avatar">
+                🚌
+                <div class="bus-type-indicator type-${b.type}"></div>
+              </div>
+              <div class="bus-info">
+                <div class="bus-row-top">
+                  <div class="bus-name">${favIcon}${b.from} ➔ ${b.to}</div>
+                  <div class="bus-time">${this.fmt12(b.time)}</div>
+                </div>
+                <div class="bus-row-bottom">
+                  <div class="bus-route">Bus ${b.busNo} ${b.notes ? '· '+b.notes : ''}</div>
+                  <div class="bus-badges">${badgeHtml}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      },
+
+      calculateLiveRecommendation() {
+        const now = this.nowMins();
+        const upcoming = this.buses.filter(b => this.timeToMins(b.time) >= now)
+                                   .sort((a,b) => this.timeToMins(a.time) - this.timeToMins(b.time));
+
+        const recBanner = document.getElementById('liveRecommendation');
+        if(upcoming.length > 0) {
+          const next = upcoming[0];
+          this.nextBestBusId = next.id;
+          document.getElementById('liveRecDesc').textContent = `${next.from} to ${next.to} (Bus ${next.busNo})`;
+          document.getElementById('liveRecTime').textContent = this.fmt12(next.time);
+          document.getElementById('liveRecMins').textContent = `${this.timeToMins(next.time) - now} m`;
+          recBanner.style.display = 'flex';
+        } else {
+          recBanner.style.display = 'none';
+          this.nextBestBusId = null;
+        }
+      },
+
+      // --- Interactions ---
+      currentSelectedBusId: null,
+
+      showBusDetails(id) {
+        if(!id) return;
+        const bus = this.buses.find(b => b.id === id);
+        if(!bus) return;
+        this.currentSelectedBusId = id;
+
+        document.getElementById('modalBusTitle').textContent = `Bus ${bus.busNo}`;
+        document.getElementById('modalBusRoute').textContent = `${bus.from} ➔ ${bus.to} at ${this.fmt12(bus.time)}`;
+
+        const favBtn = document.getElementById('modalBtnFav');
+        favBtn.textContent = this.favorites.has(id) ? '⭐ Remove Favorite' : '⭐ Add Favorite';
+
+        document.getElementById('modalBtnDelete').style.display = this.isAdmin ? 'flex' : 'none';
+
+        document.getElementById('busActionModal').classList.add('show');
+      },
+
+      closeModal(id) {
+        document.getElementById(id).classList.remove('show');
+        this.currentSelectedBusId = null;
+      },
+
+      toggleFavoriteAction() {
+        if(!this.currentUser) { this.showToast('Please login first'); return; }
+        const id = this.currentSelectedBusId;
+        if(this.favorites.has(id)) this.favorites.delete(id);
+        else this.favorites.add(id);
+
+        this.saveFavorites();
+        this.renderBuses();
+        this.closeModal('busActionModal');
+      },
+
+      deleteBusAction() {
+        if(!this.isAdmin) return;
+        const id = this.currentSelectedBusId;
+        if(confirm('Delete this bus?')) {
+          db.collection('bus_timings').doc(id).delete()
+            .then(() => { this.showToast('Deleted'); this.closeModal('busActionModal'); })
+            .catch(e => this.showToast(e.message));
+        }
+      },
+
+      handleAddBus() {
+        if(!this.currentUser) {
+          this.showToast('Please login to add a bus');
+          this.switchView('account');
+          return;
+        }
+
+        const busNo = document.getElementById('addBusNo').value.trim();
+        const from = document.getElementById('addFrom').value.trim();
+        const to = document.getElementById('addTo').value.trim();
+        const time = document.getElementById('addTime').value;
+        const type = document.getElementById('addType').value;
+        const notes = document.getElementById('addNotes').value.trim();
+
+        if(!busNo || !from || !to || !time) {
+          this.showToast('Please fill all required fields');
+          return;
+        }
+
+        const docId = 'b_' + Date.now();
+        db.collection('bus_timings').doc(docId).set({
+          busNo, from, to, time, type, notes,
+          addedBy: this.currentUser.email,
+          addedByUid: this.currentUser.uid,
+          verifiedByAdmin: true, // Auto Live for all users
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+          this.showToast('Bus added successfully!');
+          ['addBusNo','addFrom','addTo','addTime','addNotes'].forEach(id => document.getElementById(id).value = '');
+          this.switchView('buses');
+        }).catch(e => this.showToast(e.message));
+      },
+
+      showToast(msg) {
+        const c = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
       }
-    } catch(e) { console.warn('Firestore seed check (offline?):', e.message); }
-  }
+    };
 
-  // ════════════════════════════════════════
-  // DARK / LIGHT MODE TOGGLE
-  // ════════════════════════════════════════
-  function initTheme() {
-    const saved = localStorage.getItem('cmsr_theme');
-    if (saved === 'light') {
-      document.body.classList.add('light-mode');
-      $themeToggle.textContent = '☀️';
-    } else if (saved === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.body.classList.remove('light-mode');
-      $themeToggle.textContent = '🌙';
-    }
-  }
-  function toggleTheme() {
-    document.body.classList.toggle('light-mode');
-    const isLight = document.body.classList.contains('light-mode');
-    localStorage.setItem('cmsr_theme', isLight ? 'light' : 'dark');
-    $themeToggle.textContent = isLight ? '☀️' : '🌙';
-  }
-  $themeToggle.addEventListener('click', toggleTheme);
-  initTheme();
-
-  // ════════════════════════════════════════
-  // ⏰ SYSTEM CLOCK DISPLAY
-  // ════════════════════════════════════════
-  function updateSystemClock() {
-    const { h, m, s } = systemHHMM();
-    const clockEl = document.getElementById('istClock');
-    if (!clockEl) return;
-    const mm = String(m).padStart(2,'0');
-    const ss = String(s).padStart(2,'0');
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12  = h % 12 || 12;
-    clockEl.textContent = `${h12}:${mm}:${ss} ${ampm}`;
-  }
-
-  // ════════════════════════════════════════
-  // INIT
-  // ════════════════════════════════════════
-  async function init() {
-    populateDropdowns();
-    renderAll();
-    scheduleAllReminders();
-    requestNotifPermission();
-
-    await syncSeedToFirestore();
-    setupFirestoreListener();
-    setupAlertListener();
-
-    // ── Per-second ticker ─────────────────
-    let secondTick = 0;
-    setInterval(() => {
-      secondTick++;
-      updateHero();
-      updateSystemClock();
-
-      // Every 30 seconds: refresh cards + re-align reminders (drift correction)
-      if (secondTick % 30 === 0) {
-        if (activeTab === 'schedule')  renderSchedule();
-        if (activeTab === 'favorites') renderFavorites();
-        renderRemindersList();
-        scheduleAllReminders();
-      }
-    }, 1000);
-
-    console.log(`🚌 CMSRBus initialized | Local Time: ${nowSystemStr()} | Admin: ${ADMIN_EMAIL}`);
-  }
-
-  init();
-</script>
+    // Run
+    app.init();
+  </script>
 </body>
 </html>
